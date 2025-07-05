@@ -19,18 +19,15 @@ export default function App() {
 
   return (
     <div className="p-4 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Голосование за игры</h1>
-      {games.map((g) => (
-        <div key={g.game} className="mb-2 border rounded p-4 shadow">
-  <div className="text-xl font-semibold">{g.game}</div>
-  <div className="text-gray-700">Голосов: {g.votes}</div>
-  {g.voters.length > 0 && (
-    <div className="text-sm text-gray-500 mt-1">
-      Проголосовали: {g.voters.join(", ")}
-    </div>
-  )}
-</div>
-      ))}
+      <h1 className="text-3xl font-bold red mb-4">Голосование за игры</h1>
+      {[...games]
+        .sort((a, b) => b.votes - a.votes)
+        .map((g) => (
+          <div key={g.game} className="mb-2 border rounded p-2 shadow">
+            <div className="text-xl font-semibold">{g.game}</div>
+            <div>Голосов: {g.votes}</div>
+          </div>
+        ))}
     </div>
   );
 }
