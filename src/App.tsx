@@ -3,10 +3,19 @@ import { Wheel } from "react-custom-roulette";
 
 const API = process.env.REACT_APP_API_URL || "";
 
+// Типы
 type Game = {
   game: string;
   votes: number;
   voters: string[];
+};
+
+type Segment = {
+  option: string;
+  style?: {
+    backgroundColor: string;
+    textColor: string;
+  };
 };
 
 export default function App() {
@@ -27,6 +36,7 @@ export default function App() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [winner, setWinner] = useState<Game | null>(null);
   const [mustSpin, setMustSpin] = useState(false);
+  const [results, setResults] = useState<string[]>([]);
 
   const COEFFICIENT = 2;
   const isAdmin = !!token;
@@ -41,6 +51,8 @@ export default function App() {
       .then((data) => {
         setGames(data);
         setRouletteGames(data);
+        setResults([]);
+        setWinner(null);
       });
 
   const handleLogin = async () => {
@@ -111,13 +123,33 @@ export default function App() {
     refreshGames();
   };
 
-  const calculateWheelData = () => {
+  const COLORS = [
+    "#ff6384",
+    "#36a2eb",
+    "#cc65fe",
+    "#ffce56",
+    "#4bc0c0",
+    "#9966ff",
+  ];
+
+  const calculateWheelData = (): Segment[] => {
     const maxVotes = Math.max(...rouletteGames.map((g) => g.votes));
-    const weighted: { option: string }[] = [];
+    const weighted: Segment[] = [];
+    let colorIndex = 0;
 
     for (const game of rouletteGames) {
       const weight = 1 + (maxVotes - game.votes) * COEFFICIENT;
-      for (let i = 0; i < weight; i++) weighted.push({ option: game.game });
+      const color = COLORS[colorIndex % COLORS.length];
+      for (let i = 0; i < weight; i++) {
+        weighted.push({
+          option: game.game,
+          style: {
+            backgroundColor: color,
+            textColor: "#fff",
+          },
+        });
+      }
+      colorIndex++;
     }
     return weighted;
   };
@@ -126,8 +158,8 @@ export default function App() {
     if (!isAdmin || mustSpin || rouletteGames.length <= 1) return;
     const wheelData = calculateWheelData();
     const random = Math.floor(Math.random() * wheelData.length);
-    const selected = wheelData[random].option;
-    const index = rouletteGames.findIndex((g) => g.game === selected);
+    const selectedName = wheelData[random].option;
+    const index = rouletteGames.findIndex((g) => g.game === selectedName);
     setSelectedIndex(index);
     setMustSpin(true);
   };
@@ -137,7 +169,11 @@ export default function App() {
       const selected = rouletteGames[selectedIndex];
       const updated = rouletteGames.filter((g) => g.game !== selected.game);
       setRouletteGames(updated);
-      if (updated.length === 1) setWinner(updated[0]);
+      setResults((prev) => [...prev, `Выпала: ${selected.game}`]);
+      if (updated.length === 1) {
+        setWinner(updated[0]);
+        setResults((prev) => [...prev, `🎉 Победитель: ${updated[0].game}`]);
+      }
     }
     setMustSpin(false);
   };
@@ -290,12 +326,10 @@ export default function App() {
           <Wheel
             mustStartSpinning={mustSpin}
             prizeNumber={selectedIndex || 0}
-            data={rouletteGames.map((g) => ({ option: g.game }))}
-            backgroundColors={["#ff6384", "#36a2eb", "#cc65fe", "#ffce56"]}
-            textColors={["#ffffff"]}
-            outerBorderColor={"#000"}
-            radiusLineColor={"#ddd"}
+            data={calculateWheelData()}
             onStopSpinning={onStopSpinning}
+            backgroundColors={[]}
+            textColors={["#fff"]}
           />
 
           <div className="mt-4">
@@ -306,13 +340,18 @@ export default function App() {
             >
               {mustSpin ? "Крутим..." : "Выбрать игру"}
             </button>
-
-            {winner && (
-              <div className="mt-4 text-xl text-green-600 font-bold">
-                🏆 Победитель: {winner.game}
-              </div>
-            )}
           </div>
+
+          {results.length > 0 && (
+            <div className="mt-6">
+              <h3 className="font-semibold">Итоги:</h3>
+              <ul className="list-disc pl-6">
+                {results.map((r, i) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>
