@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Wheel } from "react-custom-roulette";
 
 const API = process.env.REACT_APP_API_URL || "";
 
@@ -23,9 +24,9 @@ export default function App() {
   const [editedVoters, setEditedVoters] = useState<string>("");
 
   const [rouletteGames, setRouletteGames] = useState<Game[]>([]);
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [winner, setWinner] = useState<Game | null>(null);
-  const [spinning, setSpinning] = useState(false);
+  const [mustSpin, setMustSpin] = useState(false);
 
   const COEFFICIENT = 2;
   const isAdmin = !!token;
@@ -110,28 +111,35 @@ export default function App() {
     refreshGames();
   };
 
-  const spinRoulette = () => {
-    if (!isAdmin || spinning || rouletteGames.length <= 1) return;
-
+  const calculateWheelData = () => {
     const maxVotes = Math.max(...rouletteGames.map((g) => g.votes));
-    const weighted: Game[] = [];
+    const weighted: { option: string }[] = [];
 
     for (const game of rouletteGames) {
       const weight = 1 + (maxVotes - game.votes) * COEFFICIENT;
-      for (let i = 0; i < weight; i++) weighted.push(game);
+      for (let i = 0; i < weight; i++) weighted.push({ option: game.game });
     }
+    return weighted;
+  };
 
-    const randomIndex = Math.floor(Math.random() * weighted.length);
-    const selected = weighted[randomIndex];
+  const handleSpin = () => {
+    if (!isAdmin || mustSpin || rouletteGames.length <= 1) return;
+    const wheelData = calculateWheelData();
+    const random = Math.floor(Math.random() * wheelData.length);
+    const selected = wheelData[random].option;
+    const index = rouletteGames.findIndex((g) => g.game === selected);
+    setSelectedIndex(index);
+    setMustSpin(true);
+  };
 
-    setSpinning(true);
-    setTimeout(() => {
-      setSelectedGame(selected);
+  const onStopSpinning = () => {
+    if (selectedIndex !== null) {
+      const selected = rouletteGames[selectedIndex];
       const updated = rouletteGames.filter((g) => g.game !== selected.game);
       setRouletteGames(updated);
       if (updated.length === 1) setWinner(updated[0]);
-      setSpinning(false);
-    }, 1000);
+    }
+    setMustSpin(false);
   };
 
   return (
@@ -275,38 +283,35 @@ export default function App() {
           </div>
         ))}
 
-      {games.length > 1 && isAdmin && (
-        <div className="my-10 border-t pt-6">
-          <h2 className="text-2xl font-bold mb-4">🎰 Рулетка</h2>
-          <button
-            onClick={spinRoulette}
-            disabled={spinning || rouletteGames.length <= 1}
-            className="px-5 py-2 bg-purple-600 text-white rounded"
-          >
-            {spinning ? "Крутим..." : "Выбрать игру"}
-          </button>
+      {isAdmin && rouletteGames.length > 1 && (
+        <div className="mt-10">
+          <h2 className="text-2xl font-bold mb-4">🎡 Колесо фортуны</h2>
 
-          {selectedGame && !winner && (
-            <div className="mt-6 text-lg animate-pulse">
-              🎯 Выпала игра: <strong>{selectedGame.game}</strong>
-            </div>
-          )}
+          <Wheel
+            mustStartSpinning={mustSpin}
+            prizeNumber={selectedIndex || 0}
+            data={rouletteGames.map((g) => ({ option: g.game }))}
+            backgroundColors={["#ff6384", "#36a2eb", "#cc65fe", "#ffce56"]}
+            textColors={["#ffffff"]}
+            outerBorderColor={"#000"}
+            radiusLineColor={"#ddd"}
+            onStopSpinning={onStopSpinning}
+          />
 
-          {winner && (
-            <div className="mt-6 text-2xl text-green-700 font-bold">
-              🏆 Победитель: {winner.game}
-            </div>
-          )}
+          <div className="mt-4">
+            <button
+              onClick={handleSpin}
+              disabled={mustSpin || rouletteGames.length <= 1}
+              className="px-5 py-2 bg-purple-600 text-white rounded"
+            >
+              {mustSpin ? "Крутим..." : "Выбрать игру"}
+            </button>
 
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Оставшиеся игры:</h3>
-            <ul className="list-disc pl-6">
-              {rouletteGames.map((g) => (
-                <li key={g.game}>
-                  {g.game} — {g.votes} голосов
-                </li>
-              ))}
-            </ul>
+            {winner && (
+              <div className="mt-4 text-xl text-green-600 font-bold">
+                🏆 Победитель: {winner.game}
+              </div>
+            )}
           </div>
         </div>
       )}
