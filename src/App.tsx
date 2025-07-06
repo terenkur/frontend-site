@@ -20,6 +20,7 @@ export default function App() {
   const [editingGame, setEditingGame] = useState<string | null>(null);
   const [editedName, setEditedName] = useState("");
   const [editedVotes, setEditedVotes] = useState<number>(0);
+  const [editedVoters, setEditedVoters] = useState<string>("");
 
   const isAdmin = !!token;
 
@@ -81,6 +82,11 @@ export default function App() {
   };
 
   const handleUpdateGame = async (oldName: string) => {
+    const newVoterList = editedVoters
+      .split(",")
+      .map((v) => v.trim().toLowerCase())
+      .filter((v) => v);
+
     await fetch(`${API}/games`, {
       method: "PATCH",
       headers: getAuthHeaders(),
@@ -88,6 +94,7 @@ export default function App() {
         old_name: oldName,
         new_name: editedName,
         new_votes: editedVotes,
+        new_voters: newVoterList,
       }),
     });
     setEditingGame(null);
@@ -170,12 +177,20 @@ export default function App() {
                   value={editedName}
                   onChange={(e) => setEditedName(e.target.value)}
                   className="border px-2 py-1 mb-2 w-full"
+                  placeholder="Название игры"
                 />
                 <input
                   type="number"
                   value={editedVotes}
                   onChange={(e) => setEditedVotes(Number(e.target.value))}
                   className="border px-2 py-1 mb-2 w-full"
+                  placeholder="Количество голосов"
+                />
+                <input
+                  value={editedVoters}
+                  onChange={(e) => setEditedVoters(e.target.value)}
+                  className="border px-2 py-1 mb-2 w-full"
+                  placeholder="Список голосовавших (через запятую)"
                 />
                 <div className="flex gap-2">
                   <button
@@ -201,7 +216,6 @@ export default function App() {
                     Проголосовали: {g.voters.join(", ")}
                   </div>
                 )}
-
                 {isAdmin && (
                   <div className="mt-2 flex gap-2">
                     <button
@@ -209,6 +223,7 @@ export default function App() {
                         setEditingGame(g.game);
                         setEditedName(g.game);
                         setEditedVotes(g.votes);
+                        setEditedVoters(g.voters.join(", "));
                       }}
                       className="px-3 py-1 bg-yellow-400 rounded"
                     >
