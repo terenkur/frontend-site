@@ -22,6 +22,12 @@ export default function App() {
   const [editedVotes, setEditedVotes] = useState<number>(0);
   const [editedVoters, setEditedVoters] = useState<string>("");
 
+  const [rouletteGames, setRouletteGames] = useState<Game[]>([]);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [winner, setWinner] = useState<Game | null>(null);
+  const [spinning, setSpinning] = useState(false);
+
+  const COEFFICIENT = 2;
   const isAdmin = !!token;
 
   useEffect(() => {
@@ -31,7 +37,10 @@ export default function App() {
   const refreshGames = () =>
     fetch(`${API}/games`)
       .then((res) => res.json())
-      .then((data) => setGames(data));
+      .then((data) => {
+        setGames(data);
+        setRouletteGames(data);
+      });
 
   const handleLogin = async () => {
     const res = await fetch(`${API}/login`, {
@@ -99,6 +108,30 @@ export default function App() {
     });
     setEditingGame(null);
     refreshGames();
+  };
+
+  const spinRoulette = () => {
+    if (!isAdmin || spinning || rouletteGames.length <= 1) return;
+
+    const maxVotes = Math.max(...rouletteGames.map((g) => g.votes));
+    const weighted: Game[] = [];
+
+    for (const game of rouletteGames) {
+      const weight = 1 + (maxVotes - game.votes) * COEFFICIENT;
+      for (let i = 0; i < weight; i++) weighted.push(game);
+    }
+
+    const randomIndex = Math.floor(Math.random() * weighted.length);
+    const selected = weighted[randomIndex];
+
+    setSpinning(true);
+    setTimeout(() => {
+      setSelectedGame(selected);
+      const updated = rouletteGames.filter((g) => g.game !== selected.game);
+      setRouletteGames(updated);
+      if (updated.length === 1) setWinner(updated[0]);
+      setSpinning(false);
+    }, 1000);
   };
 
   return (
@@ -184,13 +217,13 @@ export default function App() {
                   value={editedVotes}
                   onChange={(e) => setEditedVotes(Number(e.target.value))}
                   className="border px-2 py-1 mb-2 w-full"
-                  placeholder="Количество голосов"
+                  placeholder="Голосов"
                 />
                 <input
                   value={editedVoters}
                   onChange={(e) => setEditedVoters(e.target.value)}
                   className="border px-2 py-1 mb-2 w-full"
-                  placeholder="Список голосовавших (через запятую)"
+                  placeholder="Голосующие (через запятую)"
                 />
                 <div className="flex gap-2">
                   <button
@@ -241,6 +274,42 @@ export default function App() {
             )}
           </div>
         ))}
+
+      {games.length > 1 && isAdmin && (
+        <div className="my-10 border-t pt-6">
+          <h2 className="text-2xl font-bold mb-4">🎰 Рулетка</h2>
+          <button
+            onClick={spinRoulette}
+            disabled={spinning || rouletteGames.length <= 1}
+            className="px-5 py-2 bg-purple-600 text-white rounded"
+          >
+            {spinning ? "Крутим..." : "Выбрать игру"}
+          </button>
+
+          {selectedGame && !winner && (
+            <div className="mt-6 text-lg animate-pulse">
+              🎯 Выпала игра: <strong>{selectedGame.game}</strong>
+            </div>
+          )}
+
+          {winner && (
+            <div className="mt-6 text-2xl text-green-700 font-bold">
+              🏆 Победитель: {winner.game}
+            </div>
+          )}
+
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-2">Оставшиеся игры:</h3>
+            <ul className="list-disc pl-6">
+              {rouletteGames.map((g) => (
+                <li key={g.game}>
+                  {g.game} — {g.votes} голосов
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
