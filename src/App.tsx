@@ -12,11 +12,10 @@ const COLORS = [
   "#ff6384",
   "#36a2eb",
   "#ffce56",
-  "#4bc0c0",
   "#9966ff",
+  "#4bc0c0",
   "#ff9f40",
 ];
-
 const COEFFICIENT = 2;
 const RADIUS = 150;
 const CENTER = 200;
@@ -24,12 +23,10 @@ const CENTER = 200;
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
   const [sortBy, setSortBy] = useState<"votes" | "name">("votes");
-
   const [token, setToken] = useState<string | null>(
     localStorage.getItem("token")
   );
   const [password, setPassword] = useState("");
-
   const [newGameName, setNewGameName] = useState("");
   const [editingGame, setEditingGame] = useState<string | null>(null);
   const [editedName, setEditedName] = useState("");
@@ -37,8 +34,8 @@ export default function App() {
   const [editedVoters, setEditedVoters] = useState<string>("");
 
   const [wheelGames, setWheelGames] = useState<Game[]>([]);
-  const [mustSpin, setMustSpin] = useState(false);
   const [angle, setAngle] = useState(0);
+  const [mustSpin, setMustSpin] = useState(false);
   const [results, setResults] = useState<string[]>([]);
   const requestRef = useRef<number | null>(null);
 
@@ -55,6 +52,7 @@ export default function App() {
         setGames(data);
         setWheelGames(data);
         setResults([]);
+        setAngle(0);
       });
   };
 
@@ -120,19 +118,18 @@ export default function App() {
   };
 
   const maxVotes = Math.max(...wheelGames.map((g) => g.votes), 0);
-
   const segments = wheelGames.map((g) => ({
     name: g.game,
     weight: 1 + (maxVotes - g.votes) * COEFFICIENT,
   }));
-
-  const totalWeight = segments.reduce((s, g) => s + g.weight, 0);
+  const totalWeight = segments.reduce((sum, s) => sum + s.weight, 0);
 
   const handleSpin = () => {
-    if (wheelGames.length <= 1 || mustSpin) return;
+    if (!isAdmin || mustSpin || wheelGames.length <= 1) return;
+
     const finalAngle = angle + 360 * 5 + Math.random() * 360;
     const start = performance.now();
-    const duration = 5000;
+    const duration = 4000;
 
     const animate = (now: number) => {
       const elapsed = now - start;
@@ -145,11 +142,11 @@ export default function App() {
         requestRef.current = requestAnimationFrame(animate);
       } else {
         const winner = getSelectedGame(current % 360);
-        setResults((r) => [...r, `Выпала: ${winner}`]);
+        setResults((prev) => [...prev, `🎯 Выпала: ${winner}`]);
         const updated = wheelGames.filter((g) => g.game !== winner);
         setWheelGames(updated);
         if (updated.length === 1) {
-          setResults((r) => [...r, `🎉 Победитель: ${updated[0].game}`]);
+          setResults((prev) => [...prev, `🏆 Победитель: ${updated[0].game}`]);
         }
         setMustSpin(false);
       }
@@ -344,27 +341,36 @@ export default function App() {
           </div>
         ))}
 
-      {isAdmin && wheelGames.length > 1 && (
+      {wheelGames.length > 0 && (
         <div className="mt-10 text-center">
           <h2 className="text-2xl font-bold mb-4">🎡 Колесо фортуны</h2>
-          <div className="flex justify-center">
-            <svg width="400" height="400">
-              <polygon points="200,0 190,30 210,30" fill="black" />
-              <g transform={`rotate(${angle % 360} ${CENTER} ${CENTER})`}>
-                {renderWheel()}
-              </g>
-            </svg>
-          </div>
-          <button
-            onClick={handleSpin}
-            className="mt-4 px-4 py-2 bg-purple-600 text-white rounded"
-            disabled={mustSpin}
-          >
-            {mustSpin ? "Крутим..." : "Выбрать игру"}
-          </button>
+          <svg width="400" height="400">
+            <polygon points="200,0 190,30 210,30" fill="black" />
+            <g transform={`rotate(${angle % 360} ${CENTER} ${CENTER})`}>
+              {renderWheel()}
+            </g>
+          </svg>
+
+          {isAdmin && (
+            <div className="mt-4">
+              <button
+                onClick={handleSpin}
+                className="px-5 py-2 bg-purple-600 text-white rounded"
+                disabled={mustSpin || wheelGames.length <= 1}
+              >
+                {mustSpin ? "Крутим..." : "Выбрать игру"}
+              </button>
+              <button
+                onClick={refreshGames}
+                className="ml-3 px-4 py-2 bg-gray-300 rounded"
+              >
+                Обновить рулетку
+              </button>
+            </div>
+          )}
 
           {results.length > 0 && (
-            <div className="mt-4 text-left">
+            <div className="mt-6 text-left">
               <h3 className="font-semibold">Итоги:</h3>
               <ul className="list-disc pl-6">
                 {results.map((r, i) => (
