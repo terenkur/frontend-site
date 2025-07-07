@@ -1,42 +1,154 @@
-import React, { useEffect, useState } from "react";
-import { Wheel } from "react-custom-roulette";
+import React, { useEffect, useState, useRef } from "react";
 
 const API = process.env.REACT_APP_API_URL || "";
 
-// Типы
 type Game = {
   game: string;
   votes: number;
   voters: string[];
 };
 
-type Segment = {
-  option: string;
-  style?: {
-    backgroundColor: string;
-    textColor: string;
+const COLORS = [
+  "#FF6384",
+  "#36A2EB",
+  "#FFCE56",
+  "#4BC0C0",
+  "#9966FF",
+  "#FF9F40",
+];
+
+function SVGWheel({
+  segments,
+  spinning,
+  onSelect,
+  onStop,
+}: {
+  segments: { name: string; weight: number }[];
+  spinning: boolean;
+  onSelect: (game: string) => void;
+  onStop: () => void;
+}) {
+  const [angle, setAngle] = useState(0);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const requestRef = useRef<number | null>(null);
+  const totalWeight = segments.reduce((sum, s) => sum + s.weight, 0);
+  const radius = 150;
+  const center = 200;
+  const duration = 5000;
+
+  useEffect(() => {
+    if (spinning && !isSpinning) startSpin();
+  }, [spinning]);
+
+  const startSpin = () => {
+    setIsSpinning(true);
+    const finalAngle = angle + 360 * 5 + Math.random() * 360;
+    const start = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const currentAngle = angle + (finalAngle - angle) * easeOut;
+      setAngle(currentAngle);
+
+      if (progress < 1) {
+        requestRef.current = requestAnimationFrame(animate);
+      } else {
+        setIsSpinning(false);
+        const selected = getSelectedSegment(currentAngle % 360);
+        onSelect(selected);
+        onStop();
+      }
+    };
+
+    requestRef.current = requestAnimationFrame(animate);
   };
-};
+
+  const getSelectedSegment = (finalDeg: number): string => {
+    let acc = 0;
+    for (let seg of segments) {
+      const portion = (seg.weight / totalWeight) * 360;
+      if (finalDeg < acc + portion) return seg.name;
+      acc += portion;
+    }
+    return segments[segments.length - 1].name;
+  };
+
+  const renderSlices = () => {
+    let acc = 0;
+    return segments.map((seg, i) => {
+      const angleStart = acc;
+      const angleEnd = acc + (seg.weight / totalWeight) * 360;
+      acc = angleEnd;
+
+      const x1 = center + radius * Math.cos((Math.PI * angleStart) / 180);
+      const y1 = center + radius * Math.sin((Math.PI * angleStart) / 180);
+      const x2 = center + radius * Math.cos((Math.PI * angleEnd) / 180);
+      const y2 = center + radius * Math.sin((Math.PI * angleEnd) / 180);
+      const largeArcFlag = angleEnd - angleStart > 180 ? 1 : 0;
+
+      const d = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+
+      return (
+        <path
+          key={seg.name + i}
+          d={d}
+          fill={COLORS[i % COLORS.length]}
+          stroke="#fff"
+          strokeWidth="2"
+        />
+      );
+    });
+  };
+
+  const renderLabels = () => {
+    let acc = 0;
+    return segments.map((seg, i) => {
+      const midAngle = acc + ((seg.weight / totalWeight) * 360) / 2;
+      acc += (seg.weight / totalWeight) * 360;
+
+      const x = center + (radius / 1.5) * Math.cos((Math.PI * midAngle) / 180);
+      const y = center + (radius / 1.5) * Math.sin((Math.PI * midAngle) / 180);
+
+      return (
+        <text
+          key={seg.name + "-label"}
+          x={x}
+          y={y}
+          fill="#fff"
+          fontSize="14"
+          textAnchor="middle"
+          alignmentBaseline="middle"
+        >
+          {seg.name}
+        </text>
+      );
+    });
+  };
+
+  return (
+    <div className="flex justify-center">
+      <svg width="400" height="400">
+        <g transform={`rotate(${angle} ${center} ${center})`}>
+          {renderSlices()}
+          {renderLabels()}
+        </g>
+        <polygon points="200,0 190,30 210,30" fill="black" />
+      </svg>
+    </div>
+  );
+}
 
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
-  const [sortBy, setSortBy] = useState<"votes" | "name">("votes");
   const [token, setToken] = useState<string | null>(
     localStorage.getItem("token")
   );
   const [password, setPassword] = useState<string>("");
-
-  const [newGameName, setNewGameName] = useState("");
-  const [editingGame, setEditingGame] = useState<string | null>(null);
-  const [editedName, setEditedName] = useState("");
-  const [editedVotes, setEditedVotes] = useState<number>(0);
-  const [editedVoters, setEditedVoters] = useState<string>("");
-
-  const [rouletteGames, setRouletteGames] = useState<Game[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [winner, setWinner] = useState<Game | null>(null);
   const [mustSpin, setMustSpin] = useState(false);
   const [results, setResults] = useState<string[]>([]);
+  const [wheelGames, setWheelGames] = useState<Game[]>([]);
 
   const COEFFICIENT = 2;
   const isAdmin = !!token;
@@ -45,15 +157,15 @@ export default function App() {
     refreshGames();
   }, []);
 
-  const refreshGames = () =>
+  const refreshGames = () => {
     fetch(`${API}/games`)
       .then((res) => res.json())
       .then((data) => {
         setGames(data);
-        setRouletteGames(data);
+        setWheelGames(data);
         setResults([]);
-        setWinner(null);
       });
+  };
 
   const handleLogin = async () => {
     const res = await fetch(`${API}/login`, {
@@ -61,11 +173,7 @@ export default function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password }),
     });
-
-    if (!res.ok) {
-      alert("Неверный пароль");
-      return;
-    }
+    if (!res.ok) return alert("Неверный пароль");
 
     const data = await res.json();
     localStorage.setItem("token", data.token);
@@ -73,110 +181,27 @@ export default function App() {
     setPassword("");
   };
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-    return headers;
-  };
-
-  const handleAddGame = async () => {
-    if (!newGameName.trim()) return;
-    await fetch(`${API}/games`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ game: newGameName }),
-    });
-    setNewGameName("");
-    refreshGames();
-  };
-
-  const handleDeleteGame = async (game: string) => {
-    await fetch(`${API}/games`, {
-      method: "DELETE",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ game }),
-    });
-    refreshGames();
-  };
-
-  const handleUpdateGame = async (oldName: string) => {
-    const newVoterList = editedVoters
-      .split(",")
-      .map((v) => v.trim().toLowerCase())
-      .filter((v) => v);
-
-    await fetch(`${API}/games`, {
-      method: "PATCH",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        old_name: oldName,
-        new_name: editedName,
-        new_votes: editedVotes,
-        new_voters: newVoterList,
-      }),
-    });
-    setEditingGame(null);
-    refreshGames();
-  };
-
-  const COLORS = [
-    "#ff6384",
-    "#36a2eb",
-    "#cc65fe",
-    "#ffce56",
-    "#4bc0c0",
-    "#9966ff",
-  ];
-
-  const calculateWheelData = (): Segment[] => {
-    const maxVotes = Math.max(...rouletteGames.map((g) => g.votes));
-    const weighted: Segment[] = [];
-    let colorIndex = 0;
-
-    for (const game of rouletteGames) {
-      const weight = 1 + (maxVotes - game.votes) * COEFFICIENT;
-      const color = COLORS[colorIndex % COLORS.length];
-      for (let i = 0; i < weight; i++) {
-        weighted.push({
-          option: game.game,
-          style: {
-            backgroundColor: color,
-            textColor: "#fff",
-          },
-        });
-      }
-      colorIndex++;
-    }
-    return weighted;
-  };
-
   const handleSpin = () => {
-    if (!isAdmin || mustSpin || rouletteGames.length <= 1) return;
-    const wheelData = calculateWheelData();
-    const random = Math.floor(Math.random() * wheelData.length);
-    const selectedName = wheelData[random].option;
-    const index = rouletteGames.findIndex((g) => g.game === selectedName);
-    setSelectedIndex(index);
+    if (wheelGames.length <= 1 || mustSpin) return;
     setMustSpin(true);
   };
 
-  const onStopSpinning = () => {
-    if (selectedIndex !== null) {
-      const selected = rouletteGames[selectedIndex];
-      const updated = rouletteGames.filter((g) => g.game !== selected.game);
-      setRouletteGames(updated);
-      setResults((prev) => [...prev, `Выпала: ${selected.game}`]);
+  const handleSelect = (selectedGame: string) => {
+    setResults((prev) => [...prev, `Выпала: ${selectedGame}`]);
+    setWheelGames((prev) => {
+      const updated = prev.filter((g) => g.game !== selectedGame);
       if (updated.length === 1) {
-        setWinner(updated[0]);
-        setResults((prev) => [...prev, `🎉 Победитель: ${updated[0].game}`]);
+        setResults((r) => [...r, `🎉 Победитель: ${updated[0].game}`]);
       }
-    }
-    setMustSpin(false);
+      return updated;
+    });
   };
+
+  const maxVotes = Math.max(...wheelGames.map((g) => g.votes), 0);
+  const segments = wheelGames.map((g) => ({
+    name: g.game,
+    weight: 1 + (maxVotes - g.votes) * COEFFICIENT,
+  }));
 
   return (
     <div className="p-4 max-w-3xl mx-auto font-sans">
@@ -201,156 +226,26 @@ export default function App() {
           </button>
         </div>
       ) : (
-        <>
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setSortBy("votes")}
-              className={`px-3 py-1 rounded ${
-                sortBy === "votes" ? "bg-blue-600 text-white" : "bg-gray-200"
-              }`}
-            >
-              По голосам
-            </button>
-            <button
-              onClick={() => setSortBy("name")}
-              className={`px-3 py-1 rounded ${
-                sortBy === "name" ? "bg-blue-600 text-white" : "bg-gray-200"
-              }`}
-            >
-              По алфавиту
-            </button>
-          </div>
-
-          <div className="mb-6">
-            <input
-              type="text"
-              value={newGameName}
-              onChange={(e) => setNewGameName(e.target.value)}
-              placeholder="Новая игра"
-              className="border px-3 py-2 mr-2 rounded"
-            />
-            <button
-              onClick={handleAddGame}
-              className="px-4 py-2 bg-green-600 text-white rounded"
-            >
-              Добавить
-            </button>
-          </div>
-        </>
-      )}
-
-      {[...games]
-        .sort((a, b) =>
-          sortBy === "votes" ? b.votes - a.votes : a.game.localeCompare(b.game)
-        )
-        .map((g) => (
-          <div
-            key={g.game}
-            className="mb-4 border rounded p-4 shadow hover:shadow-md transition"
-          >
-            {editingGame === g.game ? (
-              <>
-                <input
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
-                  className="border px-2 py-1 mb-2 w-full"
-                  placeholder="Название игры"
-                />
-                <input
-                  type="number"
-                  value={editedVotes}
-                  onChange={(e) => setEditedVotes(Number(e.target.value))}
-                  className="border px-2 py-1 mb-2 w-full"
-                  placeholder="Голосов"
-                />
-                <input
-                  value={editedVoters}
-                  onChange={(e) => setEditedVoters(e.target.value)}
-                  className="border px-2 py-1 mb-2 w-full"
-                  placeholder="Голосующие (через запятую)"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleUpdateGame(g.game)}
-                    className="px-3 py-1 bg-blue-500 text-white rounded"
-                  >
-                    Сохранить
-                  </button>
-                  <button
-                    onClick={() => setEditingGame(null)}
-                    className="px-3 py-1 bg-gray-300 rounded"
-                  >
-                    Отмена
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="text-xl font-semibold">{g.game}</div>
-                <div>Голосов: {g.votes}</div>
-                {g.voters.length > 0 && (
-                  <div className="text-sm text-gray-500">
-                    Проголосовали: {g.voters.join(", ")}
-                  </div>
-                )}
-                {isAdmin && (
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingGame(g.game);
-                        setEditedName(g.game);
-                        setEditedVotes(g.votes);
-                        setEditedVoters(g.voters.join(", "));
-                      }}
-                      className="px-3 py-1 bg-yellow-400 rounded"
-                    >
-                      Редактировать
-                    </button>
-                    <button
-                      onClick={() => handleDeleteGame(g.game)}
-                      className="px-3 py-1 bg-red-600 text-white rounded"
-                    >
-                      Удалить
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        ))}
-
-      {isAdmin && rouletteGames.length > 1 && (
-        <div className="mt-10">
-          <h2 className="text-2xl font-bold mb-4">🎡 Колесо фортуны</h2>
-
-          <Wheel
-            mustStartSpinning={mustSpin}
-            prizeNumber={selectedIndex || 0}
-            data={calculateWheelData()}
-            onStopSpinning={onStopSpinning}
-            backgroundColors={[]}
-            textColors={["#fff"]}
+        <div className="mb-6 text-center">
+          <SVGWheel
+            segments={segments}
+            spinning={mustSpin}
+            onSelect={handleSelect}
+            onStop={() => setMustSpin(false)}
           />
-
-          <div className="mt-4">
-            <button
-              onClick={handleSpin}
-              disabled={mustSpin || rouletteGames.length <= 1}
-              className="px-5 py-2 bg-purple-600 text-white rounded"
-            >
-              {mustSpin ? "Крутим..." : "Выбрать игру"}
-            </button>
-          </div>
-
+          <button
+            onClick={handleSpin}
+            className="mt-4 px-4 py-2 bg-purple-600 text-white rounded"
+            disabled={mustSpin || wheelGames.length <= 1}
+          >
+            {mustSpin ? "Крутим..." : "Выбрать игру"}
+          </button>
           {results.length > 0 && (
-            <div className="mt-6">
-              <h3 className="font-semibold">Итоги:</h3>
-              <ul className="list-disc pl-6">
-                {results.map((r, i) => (
-                  <li key={i}>{r}</li>
-                ))}
-              </ul>
-            </div>
+            <ul className="mt-4 text-sm text-left">
+              {results.map((r, i) => (
+                <li key={i}>{r}</li>
+              ))}
+            </ul>
           )}
         </div>
       )}
