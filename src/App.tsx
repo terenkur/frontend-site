@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
+import Wheel from "./Wheel";
 
 const API = process.env.REACT_APP_API_URL || "";
 
@@ -7,18 +8,6 @@ type Game = {
   votes: number;
   voters: string[];
 };
-
-const COLORS = [
-  "#ff6384",
-  "#36a2eb",
-  "#ffce56",
-  "#9966ff",
-  "#4bc0c0",
-  "#ff9f40",
-];
-const COEFFICIENT = 2;
-const RADIUS = 150;
-const CENTER = 200;
 
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
@@ -34,10 +23,8 @@ export default function App() {
   const [editedVoters, setEditedVoters] = useState<string>("");
 
   const [wheelGames, setWheelGames] = useState<Game[]>([]);
-  const [angle, setAngle] = useState(0);
-  const [mustSpin, setMustSpin] = useState(false);
+  const [spinning, setSpinning] = useState(false);
   const [results, setResults] = useState<string[]>([]);
-  const requestRef = useRef<number | null>(null);
 
   const isAdmin = !!token;
 
@@ -52,7 +39,6 @@ export default function App() {
         setGames(data);
         setWheelGames(data);
         setResults([]);
-        setAngle(0);
       });
   };
 
@@ -117,89 +103,12 @@ export default function App() {
     refreshGames();
   };
 
-  const maxVotes = Math.max(...wheelGames.map((g) => g.votes), 0);
-  const segments = wheelGames.map((g) => ({
-    name: g.game,
-    weight: 1 + (maxVotes - g.votes) * COEFFICIENT,
-  }));
-  const totalWeight = segments.reduce((sum, s) => sum + s.weight, 0);
-
-  const handleSpin = () => {
-    if (!isAdmin || mustSpin || wheelGames.length <= 1) return;
-
-    const finalAngle = angle + 360 * 5 + Math.random() * 360;
-    const start = performance.now();
-    const duration = 4000;
-
-    const animate = (now: number) => {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      const current = angle + (finalAngle - angle) * easeOut;
-      setAngle(current);
-
-      if (progress < 1) {
-        requestRef.current = requestAnimationFrame(animate);
-      } else {
-        const winner = getSelectedGame(current % 360);
-        setResults((prev) => [...prev, `🎯 Выпала: ${winner}`]);
-        const updated = wheelGames.filter((g) => g.game !== winner);
-        setWheelGames(updated);
-        if (updated.length === 1) {
-          setResults((prev) => [...prev, `🏆 Победитель: ${updated[0].game}`]);
-        }
-        setMustSpin(false);
-      }
-    };
-
-    setMustSpin(true);
-    requestRef.current = requestAnimationFrame(animate);
-  };
-
-  const getSelectedGame = (deg: number): string => {
-    let acc = 0;
-    for (const s of segments) {
-      const portion = (s.weight / totalWeight) * 360;
-      if (deg >= acc && deg < acc + portion) return s.name;
-      acc += portion;
+  const handleResult = (game: string, isFinal: boolean) => {
+    setResults((r) => [...r, `🎯 Выпала: ${game}`]);
+    if (isFinal) {
+      setResults((r) => [...r, `🏆 Победитель: ${game}`]);
     }
-    return segments[segments.length - 1].name;
-  };
-
-  const renderWheel = () => {
-    let acc = 0;
-    return segments.map((seg, i) => {
-      const start = acc;
-      const end = acc + (seg.weight / totalWeight) * 360;
-      acc = end;
-
-      const x1 = CENTER + RADIUS * Math.cos((Math.PI * start) / 180);
-      const y1 = CENTER + RADIUS * Math.sin((Math.PI * start) / 180);
-      const x2 = CENTER + RADIUS * Math.cos((Math.PI * end) / 180);
-      const y2 = CENTER + RADIUS * Math.sin((Math.PI * end) / 180);
-      const large = end - start > 180 ? 1 : 0;
-      const d = `M ${CENTER} ${CENTER} L ${x1} ${y1} A ${RADIUS} ${RADIUS} 0 ${large} 1 ${x2} ${y2} Z`;
-
-      const mid = start + (end - start) / 2;
-      const tx = CENTER + (RADIUS / 1.5) * Math.cos((Math.PI * mid) / 180);
-      const ty = CENTER + (RADIUS / 1.5) * Math.sin((Math.PI * mid) / 180);
-
-      return (
-        <g key={i}>
-          <path d={d} fill={COLORS[i % COLORS.length]} stroke="#fff" />
-          <text
-            x={tx}
-            y={ty}
-            fill="#fff"
-            fontSize="13"
-            textAnchor="middle"
-            alignmentBaseline="middle"
-          >
-            {seg.name}
-          </text>
-        </g>
-      );
-    });
+    setWheelGames((prev) => prev.filter((g) => g.game !== game));
   };
 
   return (
@@ -344,29 +253,22 @@ export default function App() {
       {wheelGames.length > 0 && (
         <div className="mt-10 text-center">
           <h2 className="text-2xl font-bold mb-4">🎡 Колесо фортуны</h2>
-          <svg width="400" height="400">
-            <polygon points="200,0 190,30 210,30" fill="black" />
-            <g transform={`rotate(${angle % 360} ${CENTER} ${CENTER})`}>
-              {renderWheel()}
-            </g>
-          </svg>
+
+          <Wheel
+            games={wheelGames}
+            isAdmin={isAdmin}
+            spinning={spinning}
+            setSpinning={setSpinning}
+            onResult={handleResult}
+          />
 
           {isAdmin && (
-            <div className="mt-4">
-              <button
-                onClick={handleSpin}
-                className="px-5 py-2 bg-purple-600 text-white rounded"
-                disabled={mustSpin || wheelGames.length <= 1}
-              >
-                {mustSpin ? "Крутим..." : "Выбрать игру"}
-              </button>
-              <button
-                onClick={refreshGames}
-                className="ml-3 px-4 py-2 bg-gray-300 rounded"
-              >
-                Обновить рулетку
-              </button>
-            </div>
+            <button
+              onClick={refreshGames}
+              className="mt-4 px-4 py-2 bg-gray-300 rounded"
+            >
+              Обновить рулетку
+            </button>
           )}
 
           {results.length > 0 && (
