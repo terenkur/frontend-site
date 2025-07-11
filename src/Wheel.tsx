@@ -84,20 +84,11 @@ export default function Wheel({
       ctx.textBaseline = "middle";
       ctx.fillText(seg.name, tx, ty);
     });
-
-    // Указатель
-    ctx.fillStyle = "black";
-    ctx.beginPath();
-    ctx.moveTo(CENTER, 0);
-    ctx.lineTo(CENTER - 10, 30);
-    ctx.lineTo(CENTER + 10, 30);
-    ctx.closePath();
-    ctx.fill();
   };
 
   useEffect(() => {
     renderWheel();
-  }, [games, angle]);
+  }, [games]);
 
   const spin = () => {
     if (!isAdmin || spinning || games.length <= 1) return;
@@ -110,9 +101,10 @@ export default function Wheel({
       const progress = Math.min(elapsed / duration, 1);
       const easeOut = 1 - Math.pow(1 - progress, 3);
       const current = angle + (finalAngle - angle) * easeOut;
-      setAngle(current);
-      if (canvasRef.current)
+
+      if (canvasRef.current) {
         canvasRef.current.style.transform = `rotate(${current % 360}deg)`;
+      }
 
       if (progress < 1) {
         requestRef.current = requestAnimationFrame(animate);
@@ -120,6 +112,7 @@ export default function Wheel({
         const winner = getSelectedGame(current % 360);
         onResult(winner, games.length === 2);
         setSpinning(false);
+        setAngle(current);
       }
     };
 
@@ -128,17 +121,25 @@ export default function Wheel({
   };
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="relative w-[400px] h-[400px]">
-        <canvas
-          ref={canvasRef}
-          width={400}
-          height={400}
-          className="transition-transform duration-[4s] ease-out"
-        />
+    <div className="relative w-[400px] h-[400px] mx-auto">
+      {/* Указатель фиксированный */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
+        <svg width="30" height="30">
+          <polygon points="15,0 5,20 25,20" fill="black" />
+        </svg>
       </div>
+
+      {/* Колесо */}
+      <canvas
+        ref={canvasRef}
+        width={400}
+        height={400}
+        className="transition-transform duration-[4s] ease-out"
+      />
+
+      {/* Кнопка для модератора */}
       {isAdmin && (
-        <div className="mt-4">
+        <div className="mt-4 text-center">
           <button
             onClick={spin}
             className="px-5 py-2 bg-purple-600 text-white rounded"
