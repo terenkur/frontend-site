@@ -11,22 +11,21 @@ type Game = {
 
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
-  const [wheelGames, setWheelGames] = useState<Game[]>([]);
-  const [results, setResults] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"votes" | "name">("votes");
-
   const [token, setToken] = useState<string | null>(
     localStorage.getItem("token")
   );
   const [password, setPassword] = useState("");
-
   const [newGameName, setNewGameName] = useState("");
   const [editingGame, setEditingGame] = useState<string | null>(null);
   const [editedName, setEditedName] = useState("");
   const [editedVotes, setEditedVotes] = useState<number>(0);
   const [editedVoters, setEditedVoters] = useState<string>("");
 
+  const [wheelGames, setWheelGames] = useState<Game[]>([]);
+  const [results, setResults] = useState<string[]>([]);
   const [spinning, setSpinning] = useState(false);
+  const [lastResult, setLastResult] = useState<string | null>(null);
 
   const isAdmin = !!token;
 
@@ -41,6 +40,7 @@ export default function App() {
         setGames(data);
         setWheelGames(data);
         setResults([]);
+        setLastResult(null);
       });
   };
 
@@ -50,7 +50,6 @@ export default function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password }),
     });
-
     if (!res.ok) return alert("Неверный пароль");
 
     const data = await res.json();
@@ -91,7 +90,7 @@ export default function App() {
     const newVoterList = editedVoters
       .split(",")
       .map((v) => v.trim().toLowerCase())
-      .filter((v) => v);
+      .filter(Boolean);
 
     await fetch(`${API}/games`, {
       method: "PATCH",
@@ -103,23 +102,28 @@ export default function App() {
         new_voters: newVoterList,
       }),
     });
-
     setEditingGame(null);
     refreshGames();
   };
 
-  const handleResult = (game: string, isFinal: boolean) => {
-    setResults((prev) => [...prev, `🎯 Выпала: ${game}`]);
-    if (isFinal) {
-      const last = wheelGames.find((g) => g.game !== game);
-      if (last) {
-        setResults((prev) => [...prev, `🏆 Победитель: ${last.game}`]);
-      }
+  const handleSpinResult = (game: string, isWinner: boolean) => {
+    setLastResult(game);
+    setResults((r) => [...r, `🎯 Выпала: ${game}`]);
+    if (isWinner) {
+      setResults((r) => [...r, `🏆 Победитель: ${game}`]);
+    }
+  };
+
+  const handleCloseModal = () => {
+    if (lastResult) {
+      const updated = wheelGames.filter((g) => g.game !== lastResult);
+      setWheelGames(updated);
+      setLastResult(null);
     }
   };
 
   return (
-    <div className="p-4 max-w-3xl mx-auto font-sans">
+    <div className="p-4 max-w-3xl mx-auto font-sans relative">
       <h1 className="text-3xl font-bold mb-6 text-center">
         Голосование за игры
       </h1>
@@ -263,19 +267,21 @@ export default function App() {
 
           <Wheel
             games={wheelGames}
+            onResult={handleSpinResult}
             spinning={spinning}
             setSpinning={setSpinning}
-            onResult={handleResult}
             isAdmin={isAdmin}
           />
 
           <div className="mt-4">
-            <button
-              onClick={refreshGames}
-              className="px-4 py-2 bg-gray-300 rounded"
-            >
-              Обновить рулетку
-            </button>
+            {isAdmin && (
+              <button
+                onClick={refreshGames}
+                className="px-4 py-2 bg-gray-300 rounded"
+              >
+                Обновить рулетку
+              </button>
+            )}
           </div>
 
           {results.length > 0 && (
@@ -288,6 +294,21 @@ export default function App() {
               </ul>
             </div>
           )}
+        </div>
+      )}
+
+      {lastResult && (
+        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg text-center max-w-sm w-full">
+            <h2 className="text-xl font-bold mb-4">🎯 Выпала игра:</h2>
+            <p className="text-lg mb-4">{lastResult}</p>
+            <button
+              onClick={handleCloseModal}
+              className="px-4 py-2 bg-blue-600 text-white rounded"
+            >
+              Закрыть
+            </button>
+          </div>
         </div>
       )}
     </div>
