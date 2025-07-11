@@ -48,7 +48,7 @@ export default function Wheel({
     return segments[segments.length - 1].name;
   };
 
-  const renderWheel = () => {
+  const renderWheel = (currentAngle: number = angle) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -61,8 +61,8 @@ export default function Wheel({
       const end = acc + (seg.weight / totalWeight) * 360;
       acc = end;
 
-      const startRad = (start * Math.PI) / 180;
-      const endRad = (end * Math.PI) / 180;
+      const startRad = ((start + currentAngle) * Math.PI) / 180;
+      const endRad = ((end + currentAngle) * Math.PI) / 180;
 
       ctx.beginPath();
       ctx.moveTo(CENTER, CENTER);
@@ -73,8 +73,8 @@ export default function Wheel({
       ctx.strokeStyle = "#fff";
       ctx.stroke();
 
-      const mid = (start + end) / 2;
-      const textAngle = (mid * Math.PI) / 180;
+      const mid = start + (end - start) / 2;
+      const textAngle = ((mid + currentAngle) * Math.PI) / 180;
       const tx = CENTER + (RADIUS / 1.5) * Math.cos(textAngle);
       const ty = CENTER + (RADIUS / 1.5) * Math.sin(textAngle);
 
@@ -101,10 +101,8 @@ export default function Wheel({
       const progress = Math.min(elapsed / duration, 1);
       const easeOut = 1 - Math.pow(1 - progress, 3);
       const current = angle + (finalAngle - angle) * easeOut;
-
-      if (canvasRef.current) {
-        canvasRef.current.style.transform = `rotate(${current % 360}deg)`;
-      }
+      setAngle(current);
+      renderWheel(current);
 
       if (progress < 1) {
         requestRef.current = requestAnimationFrame(animate);
@@ -112,7 +110,6 @@ export default function Wheel({
         const winner = getSelectedGame(current % 360);
         onResult(winner, games.length === 2);
         setSpinning(false);
-        setAngle(current);
       }
     };
 
@@ -122,24 +119,22 @@ export default function Wheel({
 
   return (
     <div className="relative w-[400px] h-[400px] mx-auto">
-      {/* Указатель фиксированный */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
-        <svg width="30" height="30">
-          <polygon points="15,0 5,20 25,20" fill="black" />
-        </svg>
-      </div>
-
-      {/* Колесо */}
       <canvas
         ref={canvasRef}
         width={400}
         height={400}
-        className="transition-transform duration-[4s] ease-out"
+        className="absolute top-0 left-0"
       />
-
-      {/* Кнопка для модератора */}
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 z-10"
+        style={{ pointerEvents: "none" }}
+      >
+        <svg width="30" height="30">
+          <polygon points="15,0 5,20 25,20" fill="black" />
+        </svg>
+      </div>
       {isAdmin && (
-        <div className="mt-4 text-center">
+        <div className="absolute bottom-[-60px] left-1/2 -translate-x-1/2">
           <button
             onClick={spin}
             className="px-5 py-2 bg-purple-600 text-white rounded"
