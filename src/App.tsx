@@ -11,20 +11,22 @@ type Game = {
 
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
+  const [wheelGames, setWheelGames] = useState<Game[]>([]);
+  const [results, setResults] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"votes" | "name">("votes");
+
   const [token, setToken] = useState<string | null>(
     localStorage.getItem("token")
   );
   const [password, setPassword] = useState("");
+
   const [newGameName, setNewGameName] = useState("");
   const [editingGame, setEditingGame] = useState<string | null>(null);
   const [editedName, setEditedName] = useState("");
   const [editedVotes, setEditedVotes] = useState<number>(0);
   const [editedVoters, setEditedVoters] = useState<string>("");
 
-  const [wheelGames, setWheelGames] = useState<Game[]>([]);
   const [spinning, setSpinning] = useState(false);
-  const [results, setResults] = useState<string[]>([]);
 
   const isAdmin = !!token;
 
@@ -48,6 +50,7 @@ export default function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password }),
     });
+
     if (!res.ok) return alert("Неверный пароль");
 
     const data = await res.json();
@@ -89,6 +92,7 @@ export default function App() {
       .split(",")
       .map((v) => v.trim().toLowerCase())
       .filter((v) => v);
+
     await fetch(`${API}/games`, {
       method: "PATCH",
       headers: getAuthHeaders(),
@@ -99,16 +103,19 @@ export default function App() {
         new_voters: newVoterList,
       }),
     });
+
     setEditingGame(null);
     refreshGames();
   };
 
   const handleResult = (game: string, isFinal: boolean) => {
-    setResults((r) => [...r, `🎯 Выпала: ${game}`]);
+    setResults((prev) => [...prev, `🎯 Выпала: ${game}`]);
     if (isFinal) {
-      setResults((r) => [...r, `🏆 Победитель: ${game}`]);
+      const last = wheelGames.find((g) => g.game !== game);
+      if (last) {
+        setResults((prev) => [...prev, `🏆 Победитель: ${last.game}`]);
+      }
     }
-    setWheelGames((prev) => prev.filter((g) => g.game !== game));
   };
 
   return (
@@ -256,20 +263,20 @@ export default function App() {
 
           <Wheel
             games={wheelGames}
-            isAdmin={isAdmin}
             spinning={spinning}
             setSpinning={setSpinning}
             onResult={handleResult}
+            isAdmin={isAdmin}
           />
 
-          {isAdmin && (
+          <div className="mt-4">
             <button
               onClick={refreshGames}
-              className="mt-4 px-4 py-2 bg-gray-300 rounded"
+              className="px-4 py-2 bg-gray-300 rounded"
             >
               Обновить рулетку
             </button>
-          )}
+          </div>
 
           {results.length > 0 && (
             <div className="mt-6 text-left">
