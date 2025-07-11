@@ -73,7 +73,7 @@ export default function Wheel({
       ctx.strokeStyle = "#fff";
       ctx.stroke();
 
-      const mid = start + (end - start) / 2;
+      const mid = (start + end) / 2;
       const textAngle = ((mid + currentAngle) * Math.PI) / 180;
       const tx = CENTER + (RADIUS / 1.5) * Math.cos(textAngle);
       const ty = CENTER + (RADIUS / 1.5) * Math.sin(textAngle);
@@ -119,20 +119,25 @@ export default function Wheel({
 
   return (
     <div className="relative w-[400px] h-[400px] mx-auto">
+      {/* Канвас с рулеткой */}
       <canvas
         ref={canvasRef}
         width={400}
         height={400}
         className="absolute top-0 left-0"
       />
+
+      {/* Указатель */}
       <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 z-10"
-        style={{ pointerEvents: "none" }}
+        className="absolute z-10 left-1/2 -translate-x-1/2"
+        style={{ top: "-12px", pointerEvents: "none" }}
       >
-        <svg width="30" height="30">
-          <polygon points="15,0 5,20 25,20" fill="black" />
+        <svg width="40" height="30">
+          <polygon points="20,30 10,10 30,10" fill="black" />
         </svg>
       </div>
+
+      {/* Кнопка только для модератора */}
       {isAdmin && (
         <div className="absolute bottom-[-60px] left-1/2 -translate-x-1/2">
           <button
