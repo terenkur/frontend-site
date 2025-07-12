@@ -23,9 +23,9 @@ export default function App() {
   const [editedVoters, setEditedVoters] = useState<string>("");
 
   const [wheelGames, setWheelGames] = useState<Game[]>([]);
-  const [results, setResults] = useState<string[]>([]);
   const [spinning, setSpinning] = useState(false);
-  const [lastResult, setLastResult] = useState<string | null>(null);
+  const [modalGame, setModalGame] = useState<string | null>(null);
+  const [isFinalWinner, setIsFinalWinner] = useState(false);
 
   const isAdmin = !!token;
 
@@ -39,8 +39,8 @@ export default function App() {
       .then((data) => {
         setGames(data);
         setWheelGames(data);
-        setResults([]);
-        setLastResult(null);
+        setModalGame(null);
+        setIsFinalWinner(false);
       });
   };
 
@@ -90,8 +90,7 @@ export default function App() {
     const newVoterList = editedVoters
       .split(",")
       .map((v) => v.trim().toLowerCase())
-      .filter(Boolean);
-
+      .filter((v) => v);
     await fetch(`${API}/games`, {
       method: "PATCH",
       headers: getAuthHeaders(),
@@ -106,20 +105,17 @@ export default function App() {
     refreshGames();
   };
 
-  const handleSpinResult = (game: string, isWinner: boolean) => {
-    setLastResult(game);
-    setResults((r) => [...r, `🎯 Выпала: ${game}`]);
-    if (isWinner) {
-      setResults((r) => [...r, `🏆 Победитель: ${game}`]);
-    }
+  const handleResult = (game: string, isWinner: boolean) => {
+    setModalGame(game);
+    setIsFinalWinner(isWinner);
   };
 
-  const handleCloseModal = () => {
-    if (lastResult) {
-      const updated = wheelGames.filter((g) => g.game !== lastResult);
-      setWheelGames(updated);
-      setLastResult(null);
+  const closeModal = () => {
+    if (modalGame) {
+      setWheelGames((prev) => prev.filter((g) => g.game !== modalGame));
     }
+    setModalGame(null);
+    setIsFinalWinner(false);
   };
 
   return (
@@ -264,47 +260,40 @@ export default function App() {
       {wheelGames.length > 0 && (
         <div className="mt-10 text-center">
           <h2 className="text-2xl font-bold mb-4">🎡 Колесо фортуны</h2>
-
           <Wheel
             games={wheelGames}
-            onResult={handleSpinResult}
+            onResult={handleResult}
             spinning={spinning}
             setSpinning={setSpinning}
             isAdmin={isAdmin}
           />
-
-          <div className="mt-4">
-            {isAdmin && (
-              <button
-                onClick={refreshGames}
-                className="px-4 py-2 bg-gray-300 rounded"
-              >
-                Обновить рулетку
-              </button>
-            )}
-          </div>
-
-          {results.length > 0 && (
-            <div className="mt-6 text-left">
-              <h3 className="font-semibold">Итоги:</h3>
-              <ul className="list-disc pl-6">
-                {results.map((r, i) => (
-                  <li key={i}>{r}</li>
-                ))}
-              </ul>
-            </div>
+          {isAdmin && (
+            <button
+              onClick={refreshGames}
+              className="mt-6 px-4 py-2 bg-gray-300 rounded"
+            >
+              Обновить рулетку
+            </button>
           )}
         </div>
       )}
 
-      {lastResult && (
-        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg text-center max-w-sm w-full">
-            <h2 className="text-xl font-bold mb-4">🎯 Выпала игра:</h2>
-            <p className="text-lg mb-4">{lastResult}</p>
+      {/* Модальное окно результата */}
+      {modalGame && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 text-center w-[300px]">
+            <h2 className="text-xl font-semibold mb-4">
+              🎯 Выпала игра: <br />
+              <span className="text-purple-600">{modalGame}</span>
+            </h2>
+            {isFinalWinner && (
+              <p className="text-green-600 font-semibold mb-2">
+                🏆 Это финальный победитель!
+              </p>
+            )}
             <button
-              onClick={handleCloseModal}
-              className="px-4 py-2 bg-blue-600 text-white rounded"
+              onClick={closeModal}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
             >
               Закрыть
             </button>
