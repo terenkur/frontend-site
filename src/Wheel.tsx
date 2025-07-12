@@ -110,8 +110,8 @@ export default function Wheel({
       if (progress < 1) {
         requestRef.current = requestAnimationFrame(animate);
       } else {
-        const selectedDeg = current % 360;
-        const winner = getSelectedGame(selectedDeg);
+        const pointerAngle = (current + 270) % 360; // 🡸 ключевая строчка
+        const winner = getSelectedGame(pointerAngle);
         onResult(winner, games.length === 2);
         setSpinning(false);
       }
