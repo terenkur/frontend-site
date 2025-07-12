@@ -39,18 +39,18 @@ export default function Wheel({
   const totalWeight = segments.reduce((s, g) => s + g.weight, 0);
 
   const getSelectedGame = (deg: number): string => {
-    const pointerAngle = (deg + 270) % 360; // 270° — это верх
-
+    // угол стрелки = 270°, то есть вверх
+    const targetAngle = (deg + 90) % 360; // потому что колесо вращается, а стрелка — нет
     let acc = 0;
     for (const s of segments) {
       const portion = (s.weight / totalWeight) * 360;
-      if (pointerAngle >= acc && pointerAngle < acc + portion) return s.name;
+      if (targetAngle >= acc && targetAngle < acc + portion) return s.name;
       acc += portion;
     }
     return segments[segments.length - 1].name;
   };
 
-  const renderWheel = (rotationDeg = 0) => {
+  const renderWheel = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -64,8 +64,8 @@ export default function Wheel({
       const end = acc + (seg.weight / totalWeight) * 360;
       acc = end;
 
-      const startRad = ((start + rotationDeg) * Math.PI) / 180;
-      const endRad = ((end + rotationDeg) * Math.PI) / 180;
+      const startRad = ((start + angle) * Math.PI) / 180;
+      const endRad = ((end + angle) * Math.PI) / 180;
 
       ctx.beginPath();
       ctx.moveTo(CENTER, CENTER);
@@ -76,7 +76,7 @@ export default function Wheel({
       ctx.strokeStyle = "#fff";
       ctx.stroke();
 
-      const mid = (start + end) / 2 + rotationDeg;
+      const mid = (start + end) / 2 + angle;
       const textAngle = (mid * Math.PI) / 180;
       const tx = CENTER + (RADIUS / 1.5) * Math.cos(textAngle);
       const ty = CENTER + (RADIUS / 1.5) * Math.sin(textAngle);
@@ -90,12 +90,11 @@ export default function Wheel({
   };
 
   useEffect(() => {
-    renderWheel(angle);
-  }, [games, angle]);
+    renderWheel();
+  }, [games]);
 
   const spin = () => {
     if (!isAdmin || spinning || games.length <= 1) return;
-
     const finalAngle = angle + 360 * 5 + Math.random() * 360;
     const start = performance.now();
     const duration = 4000;
@@ -106,13 +105,13 @@ export default function Wheel({
       const easeOut = 1 - Math.pow(1 - progress, 3);
       const current = angle + (finalAngle - angle) * easeOut;
       setAngle(current);
-      renderWheel(current);
+      renderWheel();
 
       if (progress < 1) {
         requestRef.current = requestAnimationFrame(animate);
       } else {
-        const finalDeg = current % 360;
-        const winner = getSelectedGame(finalDeg);
+        const selectedDeg = current % 360;
+        const winner = getSelectedGame(selectedDeg);
         onResult(winner, games.length === 2);
         setSpinning(false);
       }
@@ -129,7 +128,7 @@ export default function Wheel({
         ref={canvasRef}
         width={400}
         height={400}
-        className="absolute top-0 left-0"
+        className="absolute top-0 left-0 transition-transform duration-[4s] ease-out"
       />
 
       {/* Указатель */}
@@ -137,12 +136,12 @@ export default function Wheel({
         className="absolute z-10 left-1/2 -translate-x-1/2"
         style={{ top: "-14px", pointerEvents: "none" }}
       >
-        <svg width="40" height="30">
-          <polygon points="20,30 10,10 30,10" fill="black" />
+        <svg width="40" height="40">
+          <polygon points="20,0 10,20 30,20" fill="black" />
         </svg>
       </div>
 
-      {/* Кнопка кручения */}
+      {/* Кнопка */}
       {isAdmin && (
         <div className="absolute bottom-[-60px] left-1/2 -translate-x-1/2">
           <button
