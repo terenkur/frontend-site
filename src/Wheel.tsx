@@ -48,11 +48,12 @@ export default function Wheel({
     return segments[segments.length - 1].name;
   };
 
-  const renderWheel = (currentAngle: number = angle) => {
+  const renderWheel = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
     ctx.clearRect(0, 0, 400, 400);
 
     let acc = 0;
@@ -61,8 +62,9 @@ export default function Wheel({
       const end = acc + (seg.weight / totalWeight) * 360;
       acc = end;
 
-      const startRad = ((start + currentAngle) * Math.PI) / 180;
-      const endRad = ((end + currentAngle) * Math.PI) / 180;
+      // учёт текущего угла вращения
+      const startRad = ((start + angle) * Math.PI) / 180;
+      const endRad = ((end + angle) * Math.PI) / 180;
 
       ctx.beginPath();
       ctx.moveTo(CENTER, CENTER);
@@ -73,8 +75,9 @@ export default function Wheel({
       ctx.strokeStyle = "#fff";
       ctx.stroke();
 
-      const mid = (start + end) / 2;
-      const textAngle = ((mid + currentAngle) * Math.PI) / 180;
+      // текст — также с учётом вращения
+      const mid = (start + end) / 2 + angle;
+      const textAngle = (mid * Math.PI) / 180;
       const tx = CENTER + (RADIUS / 1.5) * Math.cos(textAngle);
       const ty = CENTER + (RADIUS / 1.5) * Math.sin(textAngle);
 
@@ -88,7 +91,7 @@ export default function Wheel({
 
   useEffect(() => {
     renderWheel();
-  }, [games]);
+  }, [games, angle]);
 
   const spin = () => {
     if (!isAdmin || spinning || games.length <= 1) return;
@@ -101,8 +104,8 @@ export default function Wheel({
       const progress = Math.min(elapsed / duration, 1);
       const easeOut = 1 - Math.pow(1 - progress, 3);
       const current = angle + (finalAngle - angle) * easeOut;
-      setAngle(current);
-      renderWheel(current);
+
+      setAngle(current); // вот это и запускает useEffect → renderWheel
 
       if (progress < 1) {
         requestRef.current = requestAnimationFrame(animate);
@@ -119,7 +122,6 @@ export default function Wheel({
 
   return (
     <div className="relative w-[400px] h-[400px] mx-auto">
-      {/* Канвас с рулеткой */}
       <canvas
         ref={canvasRef}
         width={400}
@@ -130,14 +132,13 @@ export default function Wheel({
       {/* Указатель */}
       <div
         className="absolute z-10 left-1/2 -translate-x-1/2"
-        style={{ top: "-12px", pointerEvents: "none" }}
+        style={{ top: "-5px", pointerEvents: "none" }}
       >
         <svg width="40" height="30">
-          <polygon points="20,30 10,10 30,10" fill="black" />
+          <polygon points="20,0 10,20 30,20" fill="black" />
         </svg>
       </div>
 
-      {/* Кнопка только для модератора */}
       {isAdmin && (
         <div className="absolute bottom-[-60px] left-1/2 -translate-x-1/2">
           <button
