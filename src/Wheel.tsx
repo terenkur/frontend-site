@@ -50,7 +50,7 @@ export default function Wheel({
     return segments[segments.length - 1].name;
   };
 
-  const renderWheel = () => {
+  const renderWheel = (currentAngle: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -64,8 +64,8 @@ export default function Wheel({
       const end = acc + (seg.weight / totalWeight) * 360;
       acc = end;
 
-      const startRad = ((start + angle) * Math.PI) / 180;
-      const endRad = ((end + angle) * Math.PI) / 180;
+      const startRad = ((start + currentAngle) * Math.PI) / 180;
+      const endRad = ((end + currentAngle) * Math.PI) / 180;
 
       ctx.beginPath();
       ctx.moveTo(CENTER, CENTER);
@@ -76,7 +76,7 @@ export default function Wheel({
       ctx.strokeStyle = "#fff";
       ctx.stroke();
 
-      const mid = (start + end) / 2 + angle;
+      const mid = (start + end) / 2 + currentAngle;
       const textAngle = (mid * Math.PI) / 180;
       const tx = CENTER + (RADIUS / 1.5) * Math.cos(textAngle);
       const ty = CENTER + (RADIUS / 1.5) * Math.sin(textAngle);
@@ -90,8 +90,8 @@ export default function Wheel({
   };
 
   useEffect(() => {
-    renderWheel();
-  }, [games]);
+    renderWheel(angle);
+  }, [games, angle]);
 
   const spin = () => {
     if (!isAdmin || spinning || games.length <= 1) return;
@@ -105,7 +105,7 @@ export default function Wheel({
       const easeOut = 1 - Math.pow(1 - progress, 3);
       const current = angle + (finalAngle - angle) * easeOut;
       setAngle(current);
-      renderWheel();
+      renderWheel(current);
 
       if (progress < 1) {
         requestRef.current = requestAnimationFrame(animate);
