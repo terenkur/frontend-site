@@ -39,10 +39,13 @@ export default function Wheel({
   const totalWeight = segments.reduce((s, g) => s + g.weight, 0);
 
   const getSelectedGame = (deg: number): string => {
+    // Смещение на 270°, чтобы стрелка сверху (вместо справа)
+    const pointerAngle = (deg + 90) % 360;
+
     let acc = 0;
     for (const s of segments) {
       const portion = (s.weight / totalWeight) * 360;
-      if (deg >= acc && deg < acc + portion) return s.name;
+      if (pointerAngle >= acc && pointerAngle < acc + portion) return s.name;
       acc += portion;
     }
     return segments[segments.length - 1].name;
