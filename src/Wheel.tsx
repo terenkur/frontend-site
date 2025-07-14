@@ -19,6 +19,7 @@ const COLORS = [
 const COEFFICIENT = 2;
 const RADIUS = 150;
 const CENTER = 200;
+const POINTER_ANGLE = 270; // Угол указателя (вертикально вверх)
 
 export default function Wheel({
   games,
@@ -38,15 +39,22 @@ export default function Wheel({
   }));
   const totalWeight = segments.reduce((s, g) => s + g.weight, 0);
 
-  const getSelectedGame = (deg: number): string => {
-    // угол стрелки = 270°, то есть вверх
-    const targetAngle = (deg + 90) % 360; // потому что колесо вращается, а стрелка — нет
-    let acc = 0;
-    for (const s of segments) {
-      const portion = (s.weight / totalWeight) * 360;
-      if (targetAngle >= acc && targetAngle < acc + portion) return s.name;
-      acc += portion;
+  // Нормализует угол в диапазон [0, 360)
+  const normalizeAngle = (deg: number) => ((deg % 360) + 360) % 360;
+
+  const getSelectedGame = (currentAngle: number): string => {
+    const normalizedAngle = normalizeAngle(currentAngle);
+    let accumulatedAngle = 0;
+    
+    for (const segment of segments) {
+      const segmentAngle = (segment.weight / totalWeight) * 360;
+      if (normalizedAngle >= accumulatedAngle && 
+          normalizedAngle < accumulatedAngle + segmentAngle) {
+        return segment.name;
+      }
+      accumulatedAngle += segmentAngle;
     }
+    
     return segments[segments.length - 1].name;
   };
 
@@ -58,34 +66,40 @@ export default function Wheel({
 
     ctx.clearRect(0, 0, 400, 400);
 
-    let acc = 0;
-    segments.forEach((seg, i) => {
-      const start = acc;
-      const end = acc + (seg.weight / totalWeight) * 360;
-      acc = end;
+    let accumulatedAngle = 0;
+    segments.forEach((segment, index) => {
+      const segmentAngle = (segment.weight / totalWeight) * 360;
+      const startAngle = accumulatedAngle + currentAngle;
+      const endAngle = startAngle + segmentAngle;
 
-      const startRad = ((start + currentAngle) * Math.PI) / 180;
-      const endRad = ((end + currentAngle) * Math.PI) / 180;
-
+      // Отрисовка сегмента
       ctx.beginPath();
       ctx.moveTo(CENTER, CENTER);
-      ctx.arc(CENTER, CENTER, RADIUS, startRad, endRad);
+      ctx.arc(
+        CENTER, 
+        CENTER, 
+        RADIUS, 
+        (startAngle * Math.PI) / 180, 
+        (endAngle * Math.PI) / 180
+      );
       ctx.closePath();
-      ctx.fillStyle = COLORS[i % COLORS.length];
+      ctx.fillStyle = COLORS[index % COLORS.length];
       ctx.fill();
       ctx.strokeStyle = "#fff";
       ctx.stroke();
 
-      const mid = (start + end) / 2 + currentAngle;
-      const textAngle = (mid * Math.PI) / 180;
-      const tx = CENTER + (RADIUS / 1.5) * Math.cos(textAngle);
-      const ty = CENTER + (RADIUS / 1.5) * Math.sin(textAngle);
+      // Отрисовка текста
+      const middleAngle = startAngle + segmentAngle / 2;
+      const textX = CENTER + (RADIUS / 1.5) * Math.cos((middleAngle * Math.PI) / 180);
+      const textY = CENTER + (RADIUS / 1.5) * Math.sin((middleAngle * Math.PI) / 180);
 
       ctx.fillStyle = "#fff";
       ctx.font = "bold 13px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(seg.name, tx, ty);
+      ctx.fillText(segment.name, textX, textY);
+
+      accumulatedAngle += segmentAngle;
     });
   };
 
@@ -95,23 +109,28 @@ export default function Wheel({
 
   const spin = () => {
     if (!isAdmin || spinning || games.length <= 1) return;
-    const finalAngle = angle + 360 * 5 + Math.random() * 360;
-    const start = performance.now();
-    const duration = 4000;
+    
+    const spinDuration = 4000; // 4 секунды
+    const spinRotations = 5; // 5 полных оборотов
+    const randomAngle = Math.random() * 360;
+    const finalAngle = angle + spinRotations * 360 + randomAngle;
+    const startTime = performance.now();
 
-    const animate = (now: number) => {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      const current = angle + (finalAngle - angle) * easeOut;
-      setAngle(current);
-      renderWheel(current);
+    const animate = (currentTime: number) => {
+      const elapsedTime = currentTime - startTime;
+      const progress = Math.min(elapsedTime / spinDuration, 1);
+      const easeOutProgress = 1 - Math.pow(1 - progress, 3);
+      const currentAngle = angle + (finalAngle - angle) * easeOutProgress;
+      
+      setAngle(currentAngle);
+      renderWheel(currentAngle);
 
       if (progress < 1) {
         requestRef.current = requestAnimationFrame(animate);
       } else {
-        const pointerAngle = (current + 270) % 360; // 🡸 ключевая строчка
-        const winner = getSelectedGame(pointerAngle);
+        // Корректный расчёт угла под указателем
+        const angleUnderPointer = normalizeAngle(POINTER_ANGLE - normalizeAngle(currentAngle));
+        const winner = getSelectedGame(angleUnderPointer);
         onResult(winner, games.length === 2);
         setSpinning(false);
       }
@@ -123,15 +142,13 @@ export default function Wheel({
 
   return (
     <div className="relative w-[400px] h-[400px] mx-auto">
-      {/* Канвас с рулеткой */}
       <canvas
         ref={canvasRef}
         width={400}
         height={400}
-        className="absolute top-0 left-0 transition-transform duration-[4s] ease-out"
+        className="absolute top-0 left-0"
       />
 
-      {/* Указатель */}
       <div
         className="absolute z-10 left-1/2 -translate-x-1/2"
         style={{ top: "-14px", pointerEvents: "none" }}
@@ -141,7 +158,6 @@ export default function Wheel({
         </svg>
       </div>
 
-      {/* Кнопка */}
       {isAdmin && (
         <div className="absolute bottom-[-60px] left-1/2 -translate-x-1/2">
           <button
