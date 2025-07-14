@@ -19,7 +19,8 @@ const COLORS = [
 const COEFFICIENT = 2;
 const RADIUS = 150;
 const CENTER = 200;
-const POINTER_ANGLE = 270; // Угол указателя (вертикально вверх)
+const POINTER_ANGLE = 270;
+const ZERO_VOTES_WEIGHT = 40; // Новый параметр для веса игр с 0 голосами
 
 export default function Wheel({
   games,
@@ -35,7 +36,8 @@ export default function Wheel({
   const maxVotes = Math.max(...games.map((g) => g.votes), 0);
   const segments = games.map((g) => ({
     name: g.game,
-    weight: 1 + (maxVotes - g.votes) * COEFFICIENT,
+    // Основное изменение здесь:
+    weight: g.votes === 0 ? ZERO_VOTES_WEIGHT : 1 + (maxVotes - g.votes) * COEFFICIENT,
   }));
   const totalWeight = segments.reduce((s, g) => s + g.weight, 0);
 
@@ -159,15 +161,14 @@ export default function Wheel({
           transform: "translateX(-50%) rotate(180deg)" // Перевернул стрелку
         }}
       >
-        <svg width="40" height="30" viewBox="0 0 20 15">
-          {/* Изменил форму стрелки для лучшего визуального восприятия */}
-          <path 
-            d="M10 0 L20 15 L0 15 Z" 
-            fill="black"
-            stroke="#fff"
-            strokeWidth="1"
-          />
-        </svg>
+        <svg width="40" height="25" viewBox="0 0 20 12.5">
+  <path 
+    d="M10 0 L17.5 10 L2.5 10 Z"
+    fill="#ff0000" // Красный цвет
+    stroke="#fff"
+    strokeWidth="1.5"
+  />
+</svg>
       </div>
 
       {/* Кнопка (без изменений) */}
