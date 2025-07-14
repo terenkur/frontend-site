@@ -55,6 +55,11 @@ const saveWheelSettings = async (settings: WheelSettings) => {
 
   
   useEffect(() => {
+     const loadData = async () => {
+    await refreshGames(); // Загружаем игры
+    if (token) await loadWheelSettings(); // Загружаем настройки для админа
+  };
+  loadData();
   const checkToken = async () => {
     if (token) {
       try {
@@ -68,15 +73,19 @@ const saveWheelSettings = async (settings: WheelSettings) => {
     }
   };
   checkToken();
-}, []);
+}, [token]);
 
   const refreshGames = async () => {
+    try {
     const data = await fetchGames();
     setGames(data);
-    setWheelGames(data);
+    setWheelGames(data); // Важно: обновляем игры для рулетки
     setResults([]);
     setSelected(null);
     setShowModal(false);
+  } catch (error) {
+    console.error("Ошибка загрузки игр:", error);
+  }
   };
 
   const handleLogin = async (password: string) => {
