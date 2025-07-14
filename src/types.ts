@@ -1,8 +1,8 @@
-export type Game = {
+export interface Game {
   game: string;
   votes: number;
   voters: string[];
-};
+}
 
 export type WheelProps = {
   games: Game[];

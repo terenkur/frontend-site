@@ -8,7 +8,7 @@ import { WheelComponent } from "./components/Wheel/WheelComponent";
 import { WheelResults } from "./components/Wheel/WheelResults";
 import { WheelModal } from "./components/Wheel/WheelModal";
 import { Game, WheelSettings } from "./types";
-import { fetchGames, login, addGame, deleteGame, updateGame, fetchWheelSettings, updateWheelSettings} from "./api";
+import { fetchGames, login, addGame, deleteGame, updateGame, fetchWheelSettings, updateWheelSettings, getAuthHeaders} from "./api";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:8000"; // Явно укажите ваш API URL
 
@@ -30,27 +30,37 @@ export default function App() {
   const isAdmin = !!token;
 
 const loadInitialData = async () => {
-    try {
-      // Загружаем игры
-      const gamesData = await fetchGames();
-      setGames(gamesData);
-      setWheelGames(gamesData);
-      
-      // Загружаем настройки только для админа
-      if (isAdmin) {
-        try {
-          const settings = await fetchWheelSettings(token);
-          setWheelSettings(settings);
-        } catch (settingsError) {
-          console.error("Не удалось загрузить настройки:", settingsError);
-          // Используем значения по умолчанию
-        }
+  try {
+    const gamesData = await fetchGames();
+    setGames(gamesData);
+    setWheelGames(gamesData);
+    
+    if (isAdmin) {
+      try {
+        const settings = await fetchWheelSettings(token).catch(corsErrorHandler);
+        setWheelSettings(settings);
+      } catch (error) {
+        console.error("Settings load fallback:", error);
+        // Используем значения по умолчанию
       }
-    } catch (gamesError) {
-      console.error("Не удалось загрузить игры:", gamesError);
     }
-  };
+  } catch (error) {
+    console.error("Games load error:", error);
+  }
+};
 
+const corsErrorHandler = async (error: Error) => {
+  console.warn("CORS error detected, trying proxy approach...");
+  try {
+    // Альтернативный запрос через CORS proxy
+    const res = await fetch(`https://cors-anywhere.herokuapp.com/${API}/wheel-settings`, {
+      headers: getAuthHeaders(token)
+    });
+    return await res.json();
+  } catch (proxyError) {
+    throw new Error(`Both direct and proxy requests failed: ${proxyError}`);
+  }
+};
 
 const saveWheelSettings = async (settings: WheelSettings) => {
     if (!token) return;

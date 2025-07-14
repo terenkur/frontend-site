@@ -1,29 +1,54 @@
-import { WheelSettings } from './types'; // Добавляем этот импорт
+import {Game, WheelSettings } from './types'; // Добавляем этот импорт
 
-const API = process.env.REACT_APP_API_URL || "";
+const API = process.env.REACT_APP_API_URL || "https://web-production-ec36f.up.railway.app";
 
-const getAuthHeaders = (token: string | null) => {
+export const getAuthHeaders = (token: string | null): Record<string, string> => {
   if (!token) {
     throw new Error("Токен не предоставлен");
   }
   
-  return {
+ return {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${token}`
+    "Authorization": `Bearer ${token}`,
+    "Origin": "https://frontend-site-production.up.railway.app"
   };
 };
 
-export const fetchGames = async () => {
-  const res = await fetch(`${API}/games`);
-  return await res.json();
+export const fetchGames = async (): Promise<Game[]> => {
+  try {
+    const res = await fetch(`${API}/games`);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! Status: ${res.status}`);
+    }
+    
+    const data = await res.json();
+    
+    // Валидация структуры ответа
+    if (!Array.isArray(data)) {
+      throw new Error("Invalid response format");
+    }
+    
+    return data as Game[];
+  } catch (error) {
+    console.error('Error fetching games:', error);
+    throw error;
+  }
 };
 
-export const login = async (password: string) => {
+export const login = async (password: string): Promise<{ token: string }> => {
   const res = await fetch(`${API}/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ password })
   });
+  
+  if (!res.ok) {
+    throw new Error("Неверный пароль");
+  }
+  
   return await res.json();
 };
 
@@ -66,10 +91,11 @@ export const updateGame = async (
 export const fetchWheelSettings = async (token: string | null): Promise<WheelSettings> => {
   const res = await fetch(`${API}/wheel-settings`, {
     headers: getAuthHeaders(token),
+    credentials: "include"
   });
   
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    throw new Error(`HTTP error! status: ${res.status}`);
   }
   
   return await res.json();
@@ -78,10 +104,15 @@ export const fetchWheelSettings = async (token: string | null): Promise<WheelSet
 export const updateWheelSettings = async (
   settings: WheelSettings,
   token: string | null
-) => {
-  await fetch(`${API}/wheel-settings`, {
+): Promise<void> => {
+  const res = await fetch(`${API}/wheel-settings`, {
     method: "PATCH",
     headers: getAuthHeaders(token),
     body: JSON.stringify(settings),
+    credentials: "include"
   });
+  
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
 };
