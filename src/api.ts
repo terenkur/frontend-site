@@ -60,10 +60,15 @@ export const updateGame = async (
 };
 
 // Добавляем новые функции API
-export const fetchWheelSettings = async (token: string | null) => {
+export const fetchWheelSettings = async (token: string | null): Promise<WheelSettings> => {
   const res = await fetch(`${API}/wheel-settings`, {
     headers: getAuthHeaders(token),
   });
+  
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`);
+  }
+  
   return await res.json();
 };
 

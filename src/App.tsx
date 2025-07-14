@@ -49,11 +49,12 @@ const saveWheelSettings = async (settings: WheelSettings) => {
 
   
   useEffect(() => {
-    if (isAdmin) {
-      loadWheelSettings();
-    }
-    refreshGames();
-  }, [token]);
+  //console.log('Current API URL:', API);
+  if (isAdmin) {
+    loadWheelSettings();
+  }
+  //RefreshGames();
+}, [isAdmin]);
 
   const refreshGames = async () => {
     const data = await fetchGames();
