@@ -140,8 +140,9 @@ export default function Wheel({
     requestRef.current = requestAnimationFrame(animate);
   };
 
-  return (
+ return (
     <div className="relative w-[400px] h-[400px] mx-auto">
+      {/* Канвас с рулеткой */}
       <canvas
         ref={canvasRef}
         width={400}
@@ -149,15 +150,27 @@ export default function Wheel({
         className="absolute top-0 left-0"
       />
 
+      {/* Обновленный указатель - теперь правильно ориентирован и позиционирован */}
       <div
         className="absolute z-10 left-1/2 -translate-x-1/2"
-        style={{ top: "-14px", pointerEvents: "none" }}
+        style={{ 
+          top: "10px", // Уменьшил отступ сверху для приближения к рулетке
+          pointerEvents: "none",
+          transform: "translateX(-50%) rotate(180deg)" // Перевернул стрелку
+        }}
       >
-        <svg width="40" height="40">
-          <polygon points="20,0 10,20 30,20" fill="black" />
+        <svg width="40" height="30" viewBox="0 0 20 15">
+          {/* Изменил форму стрелки для лучшего визуального восприятия */}
+          <path 
+            d="M10 0 L20 15 L0 15 Z" 
+            fill="black"
+            stroke="#fff"
+            strokeWidth="1"
+          />
         </svg>
       </div>
 
+      {/* Кнопка (без изменений) */}
       {isAdmin && (
         <div className="absolute bottom-[-60px] left-1/2 -translate-x-1/2">
           <button
