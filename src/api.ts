@@ -89,16 +89,29 @@ export const updateGame = async (
 
 // Добавляем новые функции API
 export const fetchWheelSettings = async (token: string | null): Promise<WheelSettings> => {
-  const res = await fetch(`${API}/wheel-settings`, {
-    headers: getAuthHeaders(token),
-    credentials: "include"
-  });
-  
-  if (!res.ok) {
-    throw new Error(`HTTP error! status: ${res.status}`);
+  try {
+    const res = await fetch(`${API}/wheel-settings`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include'
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to fetch wheel settings:', error);
+    // Возвращаем значения по умолчанию при ошибке
+    return {
+      coefficient: 2,
+      zero_votes_weight: 40
+    };
   }
-  
-  return await res.json();
 };
 
 export const updateWheelSettings = async (

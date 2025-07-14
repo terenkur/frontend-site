@@ -36,16 +36,11 @@ const loadInitialData = async () => {
     setWheelGames(gamesData);
     
     if (isAdmin) {
-      try {
-        const settings = await fetchWheelSettings(token).catch(corsErrorHandler);
-        setWheelSettings(settings);
-      } catch (error) {
-        console.error("Settings load fallback:", error);
-        // Используем значения по умолчанию
-      }
+      const settings = await fetchWheelSettings(token);
+      setWheelSettings(settings);
     }
   } catch (error) {
-    console.error("Games load error:", error);
+    console.error("Initial data load error:", error);
   }
 };
 
