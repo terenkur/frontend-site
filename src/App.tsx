@@ -30,6 +30,12 @@ export default function App() {
 
    const loadWheelSettings = async () => {
   try {
+    if (!token) {
+      console.error("Токен отсутствует");
+      return;
+    }
+    
+    console.log("Токен:", token); // Для отладки
     const data = await fetchWheelSettings(token);
     setWheelSettings(data);
   } catch (error) {
@@ -49,12 +55,20 @@ const saveWheelSettings = async (settings: WheelSettings) => {
 
   
   useEffect(() => {
-  //console.log('Current API URL:', API);
-  if (isAdmin) {
-    loadWheelSettings();
-  }
-  //RefreshGames();
-}, [isAdmin]);
+  const checkToken = async () => {
+    if (token) {
+      try {
+        // Простая проверка валидности токена
+        await fetchWheelSettings(token);
+      } catch (error) {
+        console.log("Токен недействителен, выполняется выход");
+        localStorage.removeItem("token");
+        setToken(null);
+      }
+    }
+  };
+  checkToken();
+}, []);
 
   const refreshGames = async () => {
     const data = await fetchGames();

@@ -3,11 +3,14 @@ import { WheelSettings } from './types'; // Добавляем этот импо
 const API = process.env.REACT_APP_API_URL || "";
 
 const getAuthHeaders = (token: string | null) => {
-  const headers: Record<string, string> = {
+  if (!token) {
+    throw new Error("Токен не предоставлен");
+  }
+  
+  return {
     "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`
   };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
 };
 
 export const fetchGames = async () => {
