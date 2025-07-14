@@ -10,6 +10,8 @@ import { WheelModal } from "./components/Wheel/WheelModal";
 import { Game, WheelSettings } from "./types";
 import { fetchGames, login, addGame, deleteGame, updateGame, fetchWheelSettings, updateWheelSettings} from "./api";
 
+const API = process.env.REACT_APP_API_URL || "http://localhost:8000"; // Явно укажите ваш API URL
+
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
   const [sortBy, setSortBy] = useState<"votes" | "name">("votes");
@@ -23,57 +25,64 @@ export default function App() {
     coefficient: 2,
     zero_votes_weight: 40
   });
-  
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const isAdmin = !!token;
 
-   const loadWheelSettings = async () => {
-  try {
-    if (!token) {
-      console.error("Токен отсутствует");
-      return;
+const loadInitialData = async () => {
+    try {
+      // Загружаем игры
+      const gamesData = await fetchGames();
+      setGames(gamesData);
+      setWheelGames(gamesData);
+      
+      // Загружаем настройки только для админа
+      if (isAdmin) {
+        try {
+          const settings = await fetchWheelSettings(token);
+          setWheelSettings(settings);
+        } catch (settingsError) {
+          console.error("Не удалось загрузить настройки:", settingsError);
+          // Используем значения по умолчанию
+        }
+      }
+    } catch (gamesError) {
+      console.error("Не удалось загрузить игры:", gamesError);
     }
-    
-    console.log("Токен:", token); // Для отладки
-    const data = await fetchWheelSettings(token);
-    setWheelSettings(data);
-  } catch (error) {
-    console.error("Ошибка загрузки настроек:", error);
-  }
-};
+  };
+
 
 const saveWheelSettings = async (settings: WheelSettings) => {
-  try {
-    await updateWheelSettings(settings, token);
-    setWheelSettings(settings);
-    setShowSettingsModal(false);
-  } catch (error) {
-    console.error("Ошибка сохранения настроек:", error);
-  }
-};
-
-  
-  useEffect(() => {
-     const loadData = async () => {
-    await refreshGames(); // Загружаем игры
-    if (token) await loadWheelSettings(); // Загружаем настройки для админа
-  };
-  loadData();
-  const checkToken = async () => {
-    if (token) {
-      try {
-        // Простая проверка валидности токена
-        await fetchWheelSettings(token);
-      } catch (error) {
-        console.log("Токен недействителен, выполняется выход");
-        localStorage.removeItem("token");
-        setToken(null);
-      }
+    if (!token) return;
+    
+    try {
+      await updateWheelSettings(settings, token);
+      setWheelSettings(settings);
+      setShowSettingsModal(false);
+    } catch (error) {
+      console.error("Ошибка сохранения настроек:", error);
+      alert("Не удалось сохранить настройки");
     }
   };
-  checkToken();
-}, [token]);
+
+  
+   useEffect(() => {
+    loadInitialData();
+  }, [token]);
+
+  const handleSaveSettings = async (settings: WheelSettings) => {
+    if (!token) return;
+    
+    try {
+      await updateWheelSettings(settings, token);
+      setWheelSettings(settings);
+      setShowSettingsModal(false);
+      // Можно добавить уведомление об успешном сохранении
+    } catch (error) {
+      console.error("Ошибка сохранения настроек:", error);
+      alert("Не удалось сохранить настройки");
+    }
+  };
 
   const refreshGames = async () => {
     try {
@@ -94,6 +103,7 @@ const saveWheelSettings = async (settings: WheelSettings) => {
       localStorage.setItem("token", data.token);
       setToken(data.token);
     } catch (error) {
+      console.error("Ошибка входа:", error);
       alert("Неверный пароль");
     }
   };
@@ -182,7 +192,7 @@ const saveWheelSettings = async (settings: WheelSettings) => {
           <WheelSettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
-        onSave={saveWheelSettings}
+        onSave={handleSaveSettings}  // Используем handleSaveSettings вместо saveWheelSettings
         initialSettings={wheelSettings}
       />
 
