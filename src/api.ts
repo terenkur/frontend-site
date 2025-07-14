@@ -1,3 +1,5 @@
+import { WheelSettings } from './types'; // Добавляем этот импорт
+
 const API = process.env.REACT_APP_API_URL || "";
 
 const getAuthHeaders = (token: string | null) => {
@@ -54,5 +56,24 @@ export const updateGame = async (
       new_votes: newVotes,
       new_voters: newVoters,
     }),
+  });
+};
+
+// Добавляем новые функции API
+export const fetchWheelSettings = async (token: string | null) => {
+  const res = await fetch(`${API}/wheel-settings`, {
+    headers: getAuthHeaders(token),
+  });
+  return await res.json();
+};
+
+export const updateWheelSettings = async (
+  settings: WheelSettings,
+  token: string | null
+) => {
+  await fetch(`${API}/wheel-settings`, {
+    method: "PATCH",
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(settings),
   });
 };

@@ -1,12 +1,13 @@
 import React, { useRef, useEffect, useState } from "react";
+import { WheelSettings } from "./types";
 
-type WheelProps = {
+/*type WheelProps = {
   games: { game: string; votes: number }[];
   onResult: (game: string, isWinner: boolean) => void;
   spinning: boolean;
   setSpinning: (s: boolean) => void;
   isAdmin: boolean;
-};
+};*/
 
 const COLORS = [
   "#ff6384",
@@ -22,12 +23,22 @@ const CENTER = 200;
 const POINTER_ANGLE = 270;
 const ZERO_VOTES_WEIGHT = 40; // Новый параметр для веса игр с 0 голосами
 
+interface WheelProps {
+  games: { game: string; votes: number }[];
+  onResult: (game: string, isWinner: boolean) => void;
+  spinning: boolean;
+  setSpinning: (s: boolean) => void;
+  isAdmin: boolean;
+  wheelSettings: WheelSettings; // Добавляем настройки в пропсы
+}
+
 export default function Wheel({
   games,
   onResult,
   spinning,
   setSpinning,
   isAdmin,
+  wheelSettings, // Получаем настройки из пропсов
 }: WheelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [angle, setAngle] = useState(0);
@@ -36,8 +47,9 @@ export default function Wheel({
   const maxVotes = Math.max(...games.map((g) => g.votes), 0);
   const segments = games.map((g) => ({
     name: g.game,
-    // Основное изменение здесь:
-    weight: g.votes === 0 ? ZERO_VOTES_WEIGHT : 1 + (maxVotes - g.votes) * COEFFICIENT,
+    weight: g.votes === 0 
+      ? wheelSettings.zero_votes_weight 
+      : 1 + (maxVotes - g.votes) * wheelSettings.coefficient,
   }));
   const totalWeight = segments.reduce((s, g) => s + g.weight, 0);
 

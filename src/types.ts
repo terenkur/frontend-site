@@ -11,3 +11,8 @@ export type WheelProps = {
   setSpinning: (spinning: boolean) => void;
   isAdmin: boolean;
 };
+
+export interface WheelSettings {
+  coefficient: number;
+  zero_votes_weight: number;
+}

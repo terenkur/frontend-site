@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { WheelSettingsModal } from "./components/Wheel/WheelSettingsModal";
 import { LoginForm } from "./components/Auth/LoginForm";
 import { GameList } from "./components/Game/GameList";
 import { SortControls } from "./components/UI/SortControls";
@@ -6,8 +7,8 @@ import { AddGameForm } from "./components/UI/AddGameForm";
 import { WheelComponent } from "./components/Wheel/WheelComponent";
 import { WheelResults } from "./components/Wheel/WheelResults";
 import { WheelModal } from "./components/Wheel/WheelModal";
-import { Game } from "./types";
-import { fetchGames, login, addGame, deleteGame, updateGame } from "./api";
+import { Game, WheelSettings } from "./types";
+import { fetchGames, login, addGame, deleteGame, updateGame, fetchWheelSettings, updateWheelSettings} from "./api";
 
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
@@ -18,12 +19,41 @@ export default function App() {
   const [results, setResults] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [wheelSettings, setWheelSettings] = useState<WheelSettings>({
+    coefficient: 2,
+    zero_votes_weight: 40
+  });
+  
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const isAdmin = !!token;
 
+   const loadWheelSettings = async () => {
+  try {
+    const data = await fetchWheelSettings(token);
+    setWheelSettings(data);
+  } catch (error) {
+    console.error("Ошибка загрузки настроек:", error);
+  }
+};
+
+const saveWheelSettings = async (settings: WheelSettings) => {
+  try {
+    await updateWheelSettings(settings, token);
+    setWheelSettings(settings);
+    setShowSettingsModal(false);
+  } catch (error) {
+    console.error("Ошибка сохранения настроек:", error);
+  }
+};
+
+  
   useEffect(() => {
+    if (isAdmin) {
+      loadWheelSettings();
+    }
     refreshGames();
-  }, []);
+  }, [token]);
 
   const refreshGames = async () => {
     const data = await fetchGames();
@@ -94,6 +124,17 @@ export default function App() {
         </>
       )}
 
+      {isAdmin && (
+        <div className="mb-4 flex justify-end">
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="px-4 py-2 bg-gray-600 text-white rounded"
+          >
+            Настройки рулетки
+          </button>
+        </div>
+      )}
+
       <GameList
         games={games}
         sortBy={sortBy}
@@ -111,7 +152,15 @@ export default function App() {
             spinning={spinning}
             setSpinning={setSpinning}
             isAdmin={isAdmin}
+            wheelSettings={wheelSettings}
           />
+
+          <WheelSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        onSave={saveWheelSettings}
+        initialSettings={wheelSettings}
+      />
 
           {isAdmin && (
             <button
