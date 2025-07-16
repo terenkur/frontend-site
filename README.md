@@ -1,6 +1,6 @@
 # Frontend Site
 
-This repository contains a small React frontend and a FastAPI backend. The frontend can be deployed to **GitHub Pages** under the user `terrenkur`.
+This repository contains a small React frontend and a FastAPI backend. The frontend can be deployed to **GitHub Pages** under the user `terenkur`.
 
 ## Local Development
 
@@ -28,4 +28,4 @@ npm run deploy
 
 This builds the application and publishes the `build/` directory to the `gh-pages` branch. After enabling GitHub Pages in the repository settings, your site will be available at:
 
-<https://terrenkur.github.io/>
+<https://terenkur.github.io/frontend-site/>
