@@ -1,6 +1,7 @@
 import {Game, WheelSettings } from './types'; // Добавляем этот импорт
 
-const API = process.env.REACT_APP_API_URL || "https://web-production-ec36f.up.railway.app";
+// Base URL for the backend API. Defaults to the local FastAPI server.
+const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 export const getAuthHeaders = (token: string | null): Record<string, string> => {
   if (!token) {
