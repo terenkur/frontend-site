@@ -8,9 +8,8 @@ import { WheelComponent } from "./components/Wheel/WheelComponent";
 import { WheelResults } from "./components/Wheel/WheelResults";
 import { WheelModal } from "./components/Wheel/WheelModal";
 import { Game, WheelSettings } from "./types";
-import { fetchGames, login, addGame, deleteGame, updateGame, fetchWheelSettings, updateWheelSettings, getAuthHeaders} from "./api";
+import { fetchGames, login, addGame, deleteGame, updateGame, fetchWheelSettings, updateWheelSettings } from "./api";
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:8000"; // Явно укажите ваш API URL
 
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
@@ -44,18 +43,6 @@ const loadInitialData = async () => {
   }
 };
 
-const corsErrorHandler = async (error: Error) => {
-  console.warn("CORS error detected, trying proxy approach...");
-  try {
-    // Альтернативный запрос через CORS proxy
-    const res = await fetch(`https://cors-anywhere.herokuapp.com/${API}/wheel-settings`, {
-      headers: getAuthHeaders(token)
-    });
-    return await res.json();
-  } catch (proxyError) {
-    throw new Error(`Both direct and proxy requests failed: ${proxyError}`);
-  }
-};
 
 const saveWheelSettings = async (settings: WheelSettings) => {
     if (!token) return;
