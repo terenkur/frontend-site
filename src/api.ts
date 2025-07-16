@@ -9,8 +9,7 @@ export const getAuthHeaders = (token: string | null): Record<string, string> => 
   
  return {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${token}`,
-    "Origin": "https://frontend-site-production.up.railway.app"
+    "Authorization": `Bearer ${token}`
   };
 };
 
@@ -95,8 +94,7 @@ export const fetchWheelSettings = async (token: string | null): Promise<WheelSet
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
-      },
-      credentials: 'include'
+      }
     });
 
     if (!res.ok) {
@@ -121,8 +119,7 @@ export const updateWheelSettings = async (
   const res = await fetch(`${API}/wheel-settings`, {
     method: "PATCH",
     headers: getAuthHeaders(token),
-    body: JSON.stringify(settings),
-    credentials: "include"
+    body: JSON.stringify(settings)
   });
   
   if (!res.ok) {

@@ -29,3 +29,7 @@ npm run deploy
 This builds the application and publishes the `build/` directory to the `gh-pages` branch. After enabling GitHub Pages in the repository settings, your site will be available at:
 
 <https://terenkur.github.io/frontend-site/>
+
+If you deploy the FastAPI backend separately, make sure CORS is configured
+properly. The default setup now allows requests from any origin, so adjust it
+to your needs if you require stricter access control.

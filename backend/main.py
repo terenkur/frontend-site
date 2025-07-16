@@ -19,11 +19,8 @@ security = HTTPBearer()
 # Enable CORS so the frontend can connect from other hosts
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://frontend-site-production.up.railway.app",
-        "http://localhost:3000",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"],
