@@ -20,7 +20,6 @@ security = HTTPBearer()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://frontend-site-production.up.railway.app",
         "http://localhost:3000",
         "https://terenkur.github.io",
     ],
