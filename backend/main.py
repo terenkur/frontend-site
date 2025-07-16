@@ -19,11 +19,7 @@ security = HTTPBearer()
 # Enable CORS so the frontend can connect from other hosts
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://terenkur.github.io",
-    ],
-    allow_origin_regex=r"https://.*\.github\.io$",
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],

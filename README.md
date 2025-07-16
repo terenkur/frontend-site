@@ -1,6 +1,7 @@
 # Frontend Site
 
-This repository contains a small React frontend and a FastAPI backend. The frontend can be deployed to **GitHub Pages** under the user `terenkur`.
+This repository contains a small React frontend and a FastAPI backend.
+Both parts can be deployed together on **Vercel** using the provided configuration.
 
 ## Local Development
 
@@ -44,3 +45,13 @@ https://frontend-site-xatr.onrender.com
 During local development you can override the API endpoint by setting the
 `REACT_APP_API_URL` environment variable before running or building the
 frontend. The production build defaults to the Render URL shown above.
+
+## Deploying to Vercel
+
+This repository is preconfigured for Vercel. The React frontend will be built
+using `npm run build` and served as static files. The FastAPI backend is exposed
+through the `api/` directory as a serverless function.
+
+To deploy, simply import the repository in Vercel. No additional build settings
+are required. Once deployed, the frontend will make requests to the backend via
+the relative `/api` path.

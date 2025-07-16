@@ -1,7 +1,8 @@
 import {Game, WheelSettings } from './types'; // Добавляем этот импорт
 
-// Base URL for the backend API. Defaults to the deployed Render backend.
-const API = process.env.REACT_APP_API_URL || "https://frontend-site-xatr.onrender.com";
+// Base URL for the backend API. Defaults to the Vercel serverless function
+// deployed from this repository.
+const API = process.env.REACT_APP_API_URL || "/api";
 
 export const getAuthHeaders = (token: string | null): Record<string, string> => {
   if (!token) {

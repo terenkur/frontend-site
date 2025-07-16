@@ -10,7 +10,9 @@ import { WheelModal } from "./components/Wheel/WheelModal";
 import { Game, WheelSettings } from "./types";
 import { fetchGames, login, addGame, deleteGame, updateGame, fetchWheelSettings, updateWheelSettings, getAuthHeaders} from "./api";
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:8000"; // Явно укажите ваш API URL
+// Base URL for the backend API. Defaults to the Vercel serverless function
+// when no environment variable is provided.
+const API = process.env.REACT_APP_API_URL || "/api";
 
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);

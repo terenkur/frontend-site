@@ -1,6 +1,9 @@
 node_modules
 build
+static/
+index.html
 .env
 __pycache__/
 *.py[cod]
 venv/
+.vercel
