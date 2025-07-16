@@ -28,4 +28,4 @@ npm run deploy
 
 This builds the application and publishes the `build/` directory to the `gh-pages` branch. After enabling GitHub Pages in the repository settings, your site will be available at:
 
-<https://terrenkur.github.io/frontend-site/>
+<https://terrenkur.github.io/>
