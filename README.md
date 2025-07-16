@@ -33,3 +33,14 @@ This builds the application and publishes the `build/` directory to the `gh-page
 If you deploy the FastAPI backend separately, ensure the CORS configuration
 includes this GitHub Pages domain. Otherwise the frontend won't be able to
 fetch data from the API.
+
+## Backend on Render
+
+The backend can be deployed to [Render](https://render.com) using the
+`backend/` directory. When deployed, it is reachable at:
+
+https://frontend-site-xatr.onrender.com
+
+During local development you can override the API endpoint by setting the
+`REACT_APP_API_URL` environment variable before running or building the
+frontend. The production build defaults to the Render URL shown above.
