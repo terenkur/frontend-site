@@ -1,7 +1,7 @@
 import {Game, WheelSettings } from './types'; // Добавляем этот импорт
 
-// Base URL for the backend API. Defaults to the local FastAPI server.
-const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
+// Base URL for the backend API. Defaults to the deployed Render backend.
+const API = process.env.REACT_APP_API_URL || "https://frontend-site-xatr.onrender.com";
 
 export const getAuthHeaders = (token: string | null): Record<string, string> => {
   if (!token) {
