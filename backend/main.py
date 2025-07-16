@@ -24,6 +24,7 @@ app.add_middleware(
         "http://localhost:3000",
         "https://terenkur.github.io",
     ],
+    allow_origin_regex=r"https://.*\.github\.io$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],

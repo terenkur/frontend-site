@@ -9,8 +9,7 @@ export const getAuthHeaders = (token: string | null): Record<string, string> => 
   
  return {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${token}`,
-    "Origin": "https://frontend-site-production.up.railway.app"
+    "Authorization": `Bearer ${token}`
   };
 };
 
